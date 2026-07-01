@@ -60,21 +60,21 @@ Deno.serve(async (req) => {
     if (!isAdminData) return json({ error: "Admin only" }, 403);
 
     const body = (await req.json()) as DiscoverInput;
-    const { source, keyword = "", city = "", date_from, date_to, fb_url } = body;
+    const { source, keyword = "", city = "", state = "FL", date_from, date_to, fb_url } = body;
 
-    console.log("Discover:", { source, keyword, city, date_from, date_to, fb_url });
+    console.log("Discover:", { source, keyword, city, state, date_from, date_to, fb_url });
 
     let results: DiscoveredEvent[] = [];
 
     if (source === "eventbrite") {
-      results = await discoverEventbrite(keyword, city, date_from, date_to);
+      results = await discoverEventbrite(keyword, city, state, date_from, date_to);
     } else if (source === "meetup") {
-      results = await discoverMeetup(keyword, city, date_from, date_to);
+      results = await discoverMeetup(keyword, city, state, date_from, date_to);
     } else if (source === "facebook") {
       if (!fb_url) return json({ error: "Facebook URL required" }, 400);
       results = await discoverFacebook(fb_url);
     } else if (source === "web") {
-      results = await discoverWeb(keyword, city, date_from, date_to);
+      results = await discoverWeb(keyword, city, state, date_from, date_to);
     } else {
       return json({ error: "Unknown source" }, 400);
     }
