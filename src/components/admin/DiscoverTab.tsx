@@ -144,7 +144,11 @@ export function DiscoverTab() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-muted-foreground">City</label>
-                  <Input placeholder="e.g. Tampa" value={city} onChange={(e) => setCity(e.target.value)} />
+                  <Input placeholder="e.g. Jacksonville" value={city} onChange={(e) => setCity(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">State</label>
+                  <Input placeholder="FL" maxLength={2} value={state} onChange={(e) => setState(e.target.value.toUpperCase())} />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
