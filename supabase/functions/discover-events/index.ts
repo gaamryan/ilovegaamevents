@@ -183,13 +183,14 @@ async function discoverFacebook(pageUrl: string): Promise<DiscoveredEvent[]> {
   }
 }
 
-async function discoverWeb(keyword: string, city: string, dateFrom?: string, dateTo?: string): Promise<DiscoveredEvent[]> {
+async function discoverWeb(keyword: string, city: string, state: string, dateFrom?: string, dateTo?: string): Promise<DiscoveredEvent[]> {
   const TAVILY_API_KEY = Deno.env.get("TAVILY_API_KEY");
   if (!TAVILY_API_KEY) {
     console.warn("TAVILY_API_KEY missing");
     return [];
   }
-  const query = `${keyword} events ${city || "Florida"}`.trim();
+  const locStr = [city, state].filter(Boolean).join(", ") || "Florida";
+  const query = `${keyword} events ${locStr}`.trim();
   try {
     const res = await fetch("https://api.tavily.com/search", {
       method: "POST",
