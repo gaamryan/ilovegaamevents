@@ -21,6 +21,7 @@ import { ImageUpload } from "@/components/admin/ImageUpload";
 import { VenueCombobox } from "@/components/admin/VenueCombobox";
 import { SettingsTab } from "@/components/admin/SettingsTab";
 import { VenuesHostsTab } from "@/components/admin/VenuesHostsTab";
+import { DiscoverTab } from "@/components/admin/DiscoverTab";
 import { StylesTab } from "@/components/admin/StylesTab";
 import { AnalyticsTab } from "@/components/admin/AnalyticsTab";
 import { BulkEditDialog } from "@/components/admin/BulkEditDialog";
@@ -46,6 +47,7 @@ import {
   Repeat,
   BarChart3,
   MapPin,
+  Sparkles,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
@@ -273,6 +275,10 @@ const Admin = () => {
               <CalendarIcon className="mr-2 h-4 w-4" />
               Events
             </TabsTrigger>
+            <TabsTrigger value="discover" className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 font-medium">
+              <Sparkles className="mr-2 h-4 w-4" />
+              Discover
+            </TabsTrigger>
             <TabsTrigger value="sources" className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 font-medium">
               <Database className="mr-2 h-4 w-4" />
               Data Sources
@@ -440,6 +446,10 @@ const Admin = () => {
               </div>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="discover" className="p-0 m-0">
+          <DiscoverTab />
         </TabsContent>
 
         <TabsContent value="sources" className="p-4 m-0">
