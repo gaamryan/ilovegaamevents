@@ -59,6 +59,7 @@ export function DiscoverTab() {
         fb_url: source === "facebook" ? fbUrl : undefined,
       });
       setResults(data);
+      setHasSearched(true);
       if (data.length === 0) toast.info("No events found. Try broader terms.");
       else toast.success(`Found ${data.length} event${data.length === 1 ? "" : "s"}`);
     } catch (e: any) {
