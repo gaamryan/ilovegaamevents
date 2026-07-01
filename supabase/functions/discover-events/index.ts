@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -12,6 +11,7 @@ interface DiscoverInput {
   source: Source;
   keyword?: string;
   city?: string;
+  state?: string;
   date_from?: string;
   date_to?: string;
   fb_url?: string;
@@ -33,7 +33,7 @@ interface DiscoveredEvent {
   duplicate_of?: { id: string; title: string; score: number } | null;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
@@ -60,21 +60,21 @@ serve(async (req) => {
     if (!isAdminData) return json({ error: "Admin only" }, 403);
 
     const body = (await req.json()) as DiscoverInput;
-    const { source, keyword = "", city = "", date_from, date_to, fb_url } = body;
+    const { source, keyword = "", city = "", state = "FL", date_from, date_to, fb_url } = body;
 
-    console.log("Discover:", { source, keyword, city, date_from, date_to, fb_url });
+    console.log("Discover:", { source, keyword, city, state, date_from, date_to, fb_url });
 
     let results: DiscoveredEvent[] = [];
 
     if (source === "eventbrite") {
-      results = await discoverEventbrite(keyword, city, date_from, date_to);
+      results = await discoverEventbrite(keyword, city, state, date_from, date_to);
     } else if (source === "meetup") {
-      results = await discoverMeetup(keyword, city, date_from, date_to);
+      results = await discoverMeetup(keyword, city, state, date_from, date_to);
     } else if (source === "facebook") {
       if (!fb_url) return json({ error: "Facebook URL required" }, 400);
       results = await discoverFacebook(fb_url);
     } else if (source === "web") {
-      results = await discoverWeb(keyword, city, date_from, date_to);
+      results = await discoverWeb(keyword, city, state, date_from, date_to);
     } else {
       return json({ error: "Unknown source" }, 400);
     }
@@ -114,11 +114,12 @@ function json(body: unknown, status = 200) {
 
 // ─── Source handlers ───────────────────────────────────────────────
 
-async function discoverEventbrite(keyword: string, city: string, dateFrom?: string, dateTo?: string): Promise<DiscoveredEvent[]> {
-  // Eventbrite public search: use their public HTML search page + Jina proxy for readability
+async function discoverEventbrite(keyword: string, city: string, state: string, dateFrom?: string, dateTo?: string): Promise<DiscoveredEvent[]> {
   const q = encodeURIComponent(keyword || "events");
-  const loc = encodeURIComponent(city ? `${city}--fl` : "florida");
-  const searchUrl = `https://www.eventbrite.com/d/${loc}/${q}/`;
+  const st = (state || "fl").toLowerCase();
+  const citySlug = city ? city.trim().toLowerCase().replace(/\s+/g, "-") : "";
+  const loc = citySlug ? `${citySlug}--${st}` : (st === "fl" ? "florida" : st);
+  const searchUrl = `https://www.eventbrite.com/d/${encodeURIComponent(loc)}/${q}/`;
   const jinaUrl = `https://r.jina.ai/${searchUrl}`;
 
   try {
@@ -126,7 +127,6 @@ async function discoverEventbrite(keyword: string, city: string, dateFrom?: stri
     if (!res.ok) return [];
     const data = await res.json();
     const content: string = data?.data?.content || data?.content || "";
-    // Extract eventbrite event URLs
     const urls = Array.from(new Set(
       [...content.matchAll(/https:\/\/www\.eventbrite\.com\/e\/[a-z0-9-]+-tickets-\d+/gi)].map(m => m[0])
     )).slice(0, 20);
@@ -140,9 +140,9 @@ async function discoverEventbrite(keyword: string, city: string, dateFrom?: stri
   }
 }
 
-async function discoverMeetup(keyword: string, city: string, dateFrom?: string, dateTo?: string): Promise<DiscoveredEvent[]> {
+async function discoverMeetup(keyword: string, city: string, state: string, dateFrom?: string, dateTo?: string): Promise<DiscoveredEvent[]> {
   const q = encodeURIComponent(keyword || "");
-  const loc = encodeURIComponent(city ? `${city}, FL` : "Florida");
+  const loc = encodeURIComponent(city ? `${city}, ${state || "FL"}` : (state || "Florida"));
   const searchUrl = `https://www.meetup.com/find/?keywords=${q}&location=${loc}&source=EVENTS`;
   const jinaUrl = `https://r.jina.ai/${searchUrl}`;
 
@@ -183,13 +183,14 @@ async function discoverFacebook(pageUrl: string): Promise<DiscoveredEvent[]> {
   }
 }
 
-async function discoverWeb(keyword: string, city: string, dateFrom?: string, dateTo?: string): Promise<DiscoveredEvent[]> {
+async function discoverWeb(keyword: string, city: string, state: string, dateFrom?: string, dateTo?: string): Promise<DiscoveredEvent[]> {
   const TAVILY_API_KEY = Deno.env.get("TAVILY_API_KEY");
   if (!TAVILY_API_KEY) {
     console.warn("TAVILY_API_KEY missing");
     return [];
   }
-  const query = `${keyword} events ${city || "Florida"}`.trim();
+  const locStr = [city, state].filter(Boolean).join(", ") || "Florida";
+  const query = `${keyword} events ${locStr}`.trim();
   try {
     const res = await fetch("https://api.tavily.com/search", {
       method: "POST",

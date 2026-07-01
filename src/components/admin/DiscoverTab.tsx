@@ -25,11 +25,17 @@ import { DISCOVERY_PRESETS, presetToKeyword } from "@/lib/discovery-presets";
 
 export function DiscoverTab() {
   const queryClient = useQueryClient();
+  const today = new Date();
+  const monthOut = new Date();
+  monthOut.setMonth(monthOut.getMonth() + 1);
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+
   const [source, setSource] = useState<DiscoverSource>("eventbrite");
   const [keyword, setKeyword] = useState("");
-  const [city, setCity] = useState("");
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
+  const [city, setCity] = useState("Jacksonville");
+  const [state, setState] = useState("FL");
+  const [dateFrom, setDateFrom] = useState<string>(iso(today));
+  const [dateTo, setDateTo] = useState<string>(iso(monthOut));
   const [fbUrl, setFbUrl] = useState("");
   const [results, setResults] = useState<DiscoveredEvent[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -45,6 +51,7 @@ export function DiscoverTab() {
         source,
         keyword: keyword || undefined,
         city: city || undefined,
+        state: state || undefined,
         date_from: dateFrom || undefined,
         date_to: dateTo || undefined,
         fb_url: source === "facebook" ? fbUrl : undefined,
@@ -138,7 +145,11 @@ export function DiscoverTab() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-muted-foreground">City</label>
-                  <Input placeholder="e.g. Tampa" value={city} onChange={(e) => setCity(e.target.value)} />
+                  <Input placeholder="e.g. Jacksonville" value={city} onChange={(e) => setCity(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">State</label>
+                  <Input placeholder="FL" maxLength={2} value={state} onChange={(e) => setState(e.target.value.toUpperCase())} />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
