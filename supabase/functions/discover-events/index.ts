@@ -11,6 +11,7 @@ interface DiscoverInput {
   source: Source;
   keyword?: string;
   city?: string;
+  state?: string;
   date_from?: string;
   date_to?: string;
   fb_url?: string;
