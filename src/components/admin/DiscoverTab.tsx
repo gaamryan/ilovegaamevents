@@ -25,11 +25,17 @@ import { DISCOVERY_PRESETS, presetToKeyword } from "@/lib/discovery-presets";
 
 export function DiscoverTab() {
   const queryClient = useQueryClient();
+  const today = new Date();
+  const monthOut = new Date();
+  monthOut.setMonth(monthOut.getMonth() + 1);
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+
   const [source, setSource] = useState<DiscoverSource>("eventbrite");
   const [keyword, setKeyword] = useState("");
-  const [city, setCity] = useState("");
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
+  const [city, setCity] = useState("Jacksonville");
+  const [state, setState] = useState("FL");
+  const [dateFrom, setDateFrom] = useState<string>(iso(today));
+  const [dateTo, setDateTo] = useState<string>(iso(monthOut));
   const [fbUrl, setFbUrl] = useState("");
   const [results, setResults] = useState<DiscoveredEvent[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
