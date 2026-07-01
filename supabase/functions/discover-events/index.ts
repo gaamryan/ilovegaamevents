@@ -114,11 +114,12 @@ function json(body: unknown, status = 200) {
 
 // ─── Source handlers ───────────────────────────────────────────────
 
-async function discoverEventbrite(keyword: string, city: string, dateFrom?: string, dateTo?: string): Promise<DiscoveredEvent[]> {
-  // Eventbrite public search: use their public HTML search page + Jina proxy for readability
+async function discoverEventbrite(keyword: string, city: string, state: string, dateFrom?: string, dateTo?: string): Promise<DiscoveredEvent[]> {
   const q = encodeURIComponent(keyword || "events");
-  const loc = encodeURIComponent(city ? `${city}--fl` : "florida");
-  const searchUrl = `https://www.eventbrite.com/d/${loc}/${q}/`;
+  const st = (state || "fl").toLowerCase();
+  const citySlug = city ? city.trim().toLowerCase().replace(/\s+/g, "-") : "";
+  const loc = citySlug ? `${citySlug}--${st}` : (st === "fl" ? "florida" : st);
+  const searchUrl = `https://www.eventbrite.com/d/${encodeURIComponent(loc)}/${q}/`;
   const jinaUrl = `https://r.jina.ai/${searchUrl}`;
 
   try {
@@ -126,7 +127,6 @@ async function discoverEventbrite(keyword: string, city: string, dateFrom?: stri
     if (!res.ok) return [];
     const data = await res.json();
     const content: string = data?.data?.content || data?.content || "";
-    // Extract eventbrite event URLs
     const urls = Array.from(new Set(
       [...content.matchAll(/https:\/\/www\.eventbrite\.com\/e\/[a-z0-9-]+-tickets-\d+/gi)].map(m => m[0])
     )).slice(0, 20);
@@ -140,9 +140,9 @@ async function discoverEventbrite(keyword: string, city: string, dateFrom?: stri
   }
 }
 
-async function discoverMeetup(keyword: string, city: string, dateFrom?: string, dateTo?: string): Promise<DiscoveredEvent[]> {
+async function discoverMeetup(keyword: string, city: string, state: string, dateFrom?: string, dateTo?: string): Promise<DiscoveredEvent[]> {
   const q = encodeURIComponent(keyword || "");
-  const loc = encodeURIComponent(city ? `${city}, FL` : "Florida");
+  const loc = encodeURIComponent(city ? `${city}, ${state || "FL"}` : (state || "Florida"));
   const searchUrl = `https://www.meetup.com/find/?keywords=${q}&location=${loc}&source=EVENTS`;
   const jinaUrl = `https://r.jina.ai/${searchUrl}`;
 
