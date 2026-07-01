@@ -195,6 +195,26 @@ export function DiscoverTab() {
         </CardContent>
       </Card>
 
+      {/* Search status */}
+      {hasSearched && !discover.isPending && (
+        <div className="text-sm">
+          {results.length === 0 ? (
+            <div className="rounded-md border border-dashed p-4 text-center text-muted-foreground">
+              No matches found. Try different keywords, a broader date range, or another source.
+            </div>
+          ) : (
+            <div className="text-muted-foreground">
+              <span className="font-medium text-foreground">{results.length}</span> match{results.length === 1 ? "" : "es"} found
+              {results.some(r => r.duplicate_of) && (
+                <span className="ml-2 text-yellow-700 dark:text-yellow-400">
+                  ({results.filter(r => r.duplicate_of).length} possible duplicate{results.filter(r => r.duplicate_of).length === 1 ? "" : "s"})
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Results */}
       {results.length > 0 && (
         <div className="space-y-3">
