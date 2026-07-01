@@ -47,6 +47,7 @@ export function DiscoverTab() {
   const handleSearch = async () => {
     setResults([]);
     setSelected(new Set());
+    setHasSearched(false);
     try {
       const data = await discover.mutateAsync({
         source,
