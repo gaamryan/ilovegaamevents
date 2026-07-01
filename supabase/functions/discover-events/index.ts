@@ -32,7 +32,7 @@ interface DiscoveredEvent {
   duplicate_of?: { id: string; title: string; score: number } | null;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
