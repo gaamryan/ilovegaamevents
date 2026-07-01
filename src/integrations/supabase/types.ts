@@ -406,6 +406,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      find_similar_events: {
+        Args: {
+          _source_url?: string
+          _start_date: string
+          _title: string
+          _venue_name?: string
+        }
+        Returns: {
+          id: string
+          similarity_score: number
+          start_time: string
+          title: string
+          venue_name: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -413,6 +428,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
