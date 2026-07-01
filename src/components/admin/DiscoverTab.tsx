@@ -40,6 +40,7 @@ export function DiscoverTab() {
   const [results, setResults] = useState<DiscoveredEvent[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [importing, setImporting] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
   const discover = useDiscoverEvents();
 
