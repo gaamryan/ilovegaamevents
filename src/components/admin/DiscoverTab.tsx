@@ -50,7 +50,8 @@ export function DiscoverTab() {
       const data = await discover.mutateAsync({
         source,
         keyword: keyword || undefined,
-        city: city ? `${city}${state ? `, ${state}` : ""}` : undefined,
+        city: city || undefined,
+        state: state || undefined,
         date_from: dateFrom || undefined,
         date_to: dateTo || undefined,
         fb_url: source === "facebook" ? fbUrl : undefined,
