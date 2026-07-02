@@ -305,6 +305,12 @@ ${content}`;
         : "web")
       : sourceLabel;
 
+    const isValidHttpUrl = (v: unknown): v is string => {
+      if (typeof v !== "string") return false;
+      try { const u = new URL(v); return u.protocol === "http:" || u.protocol === "https:"; }
+      catch { return false; }
+    };
+
     return {
       source: finalSource,
       source_url: url,
@@ -314,7 +320,7 @@ ${content}`;
       end_time: parsed.end_time || null,
       venue: parsed.venue_name ? { name: parsed.venue_name, city: parsed.venue_city, address: parsed.venue_address } : null,
       host: parsed.host_name ? { name: parsed.host_name } : null,
-      image_url: parsed.image_url || null,
+      image_url: isValidHttpUrl(parsed.image_url) ? parsed.image_url : null,
       price_min: parsed.price_min ?? null,
       price_max: parsed.price_max ?? null,
       is_free: parsed.is_free ?? null,
