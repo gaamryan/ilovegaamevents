@@ -386,9 +386,25 @@ full url to cover image: ${event.image_url || "TBD"}`;
       }
 
       // Auto-optimize images: re-upload external URLs to our storage
+      const looksLikeImageUrl = (u: string) => {
+        try {
+          const parsed = new URL(u);
+          if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+          if (/\.(png|jpe?g|webp|gif|avif|svg)(\?|$)/i.test(parsed.pathname)) return true;
+          // Known event-page hosts that are HTML, not images
+          const htmlHosts = ["facebook.com", "www.facebook.com", "eventbrite.com", "www.eventbrite.com", "meetup.com", "www.meetup.com"];
+          if (htmlHosts.includes(parsed.hostname) && !/\.(png|jpe?g|webp|gif|avif)/i.test(parsed.pathname)) return false;
+          return true; // unknown — let the edge function try
+        } catch { return false; }
+      };
       toast.info("Optimizing images...");
       for (const evt of eventsToInsert) {
         if (evt.image_url && !evt.image_url.includes("event-images")) {
+          if (!looksLikeImageUrl(evt.image_url)) {
+            console.warn("Skipping non-image URL:", evt.image_url);
+            evt.image_url = null;
+            continue;
+          }
           try {
             const { data: optimized, error: optErr } = await supabase.functions.invoke("optimize-image", {
               body: JSON.stringify({ imageUrl: evt.image_url }),
@@ -405,6 +421,7 @@ full url to cover image: ${event.image_url || "TBD"}`;
           }
         }
       }
+
 
       const { data: insertedEvents, error } = await supabase.from("events").insert(eventsToInsert).select("id");
 
