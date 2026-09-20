@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -17,7 +17,7 @@ import { useCategories } from "@/hooks/useCategories";
 import { ImportEventDialog } from "@/components/admin/ImportEventDialog";
 import { CreateEventDialog } from "@/components/admin/CreateEventDialog";
 import { DataSources } from "@/components/admin/DataSources";
-import { ImageUpload } from "@/components/admin/ImageUpload";
+import { ImageUpload, type ImageUploadHandle } from "@/components/admin/ImageUpload";
 import { VenueCombobox } from "@/components/admin/VenueCombobox";
 import { SettingsTab } from "@/components/admin/SettingsTab";
 import { VenuesHostsTab } from "@/components/admin/VenuesHostsTab";
@@ -78,6 +78,7 @@ const Admin = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
+  const imageUploadRef = useRef<ImageUploadHandle>(null);
 
   // Auth form state
   const [email, setEmail] = useState("");
@@ -484,7 +485,9 @@ const Admin = () => {
               {editingEvent.image_url && (
                 <div className="relative">
                   <ImageUpload
+                    ref={imageUploadRef}
                     value={editingEvent.image_url}
+                    cropEnabled
                     onChange={(url) => {
                       // Update local state to show change immediately
                       setEditingEvent({ ...editingEvent, image_url: url });
@@ -495,7 +498,9 @@ const Admin = () => {
               {/* If no image, show uploader too */}
               {!editingEvent.image_url && (
                 <ImageUpload
+                  ref={imageUploadRef}
                   value={null}
+                  cropEnabled
                   onChange={(url) => setEditingEvent({ ...editingEvent, image_url: url })}
                 />
               )}
@@ -908,9 +913,15 @@ const Admin = () => {
                 <Button
                   className="flex-1"
                   onClick={async () => {
+                    let imageUrl = editingEvent.image_url;
+                    try {
+                      imageUrl = await imageUploadRef.current?.applyCrop() || imageUrl;
+                    } catch {
+                      return;
+                    }
                     // 1. Update Event Fields
                     const { error: eventError } = await supabase.from('events').update({
-                      image_url: editingEvent.image_url,
+                      image_url: imageUrl,
                       title: editingEvent.title,
                       description: editingEvent.description,
                       start_time: editingEvent.start_time,
