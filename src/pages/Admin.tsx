@@ -753,13 +753,19 @@ const Admin = () => {
                           className="text-xs"
                           onClick={async () => {
                             const parentId = (editingEvent as any).parent_event_id || editingEvent.id;
+                            let imageUrl = editingEvent.image_url;
+                            try {
+                              imageUrl = await imageUploadRef.current?.applyCrop() || imageUrl;
+                            } catch {
+                              return;
+                            }
                             // Update all instances with the same parent
                             const { error } = await supabase
                               .from("events")
                               .update({
                                 title: editingEvent.title,
                                 description: editingEvent.description,
-                                image_url: editingEvent.image_url,
+                                image_url: imageUrl,
                                 ticket_url: editingEvent.ticket_url,
                                 price_min: editingEvent.price_min,
                                 price_max: editingEvent.price_max,
