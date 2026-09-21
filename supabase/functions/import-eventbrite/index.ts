@@ -6,6 +6,7 @@ const corsHeaders = {
 };
 
 interface EventbriteData {
+  "@type"?: string;
   name?: string;
   description?: string;
   startDate?: string;
@@ -131,7 +132,7 @@ Deno.serve(async (req) => {
         const jsonLd = JSON.parse(jsonLdMatch[1]);
         // Handle array of JSON-LD objects
         if (Array.isArray(jsonLd)) {
-          eventData = jsonLd.find((item: any) => item["@type"] === "Event") || jsonLd[0];
+          eventData = jsonLd.find((item: EventbriteData) => item["@type"] === "Event") || jsonLd[0];
         } else {
           eventData = jsonLd;
         }

@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Calendar as CalendarIcon, AlertCircle, FileText, Globe, X, Layers, User, MapPin, Clock, Copy, Tag, Gamepad2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
@@ -155,9 +156,9 @@ Cover Image : please copy and paste the full url path to the cover image`;
         parsed.status = "approved";
         setPreviewEvents([parsed]);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setError(err.message || "Failed to process event data.");
+      setError(err instanceof Error ? err.message : "Failed to process event data.");
     } finally {
       setIsLoading(false);
       setLoadingMessage("");
@@ -257,10 +258,8 @@ full url to cover image: ${event.image_url || "TBD"}`;
     setIsLoading(true);
     setLoadingMessage("Importing events...");
 
-    let totalImported = 0;
-
     try {
-      const eventsToInsert: any[] = [];
+      const eventsToInsert: Database["public"]["Tables"]["events"]["Insert"][] = [];
       const eventCategoryMap: { eventIndex: number; categoryIds: string[] }[] = [];
       const concurrencyLimit = 3;
       let processedCount = 0;
@@ -354,7 +353,7 @@ full url to cover image: ${event.image_url || "TBD"}`;
         // Map link is now in venue, but keep in description if specific event link differs? No, clean is better.
 
         // Prepare base object
-        const commonData: any = {
+        const commonData: Database["public"]["Tables"]["events"]["Insert"] = {
           ...baseEvent,
           description: richDescription,
           status: "approved",
@@ -453,9 +452,10 @@ full url to cover image: ${event.image_url || "TBD"}`;
       setTextInput("");
       setPreviewEvents([]);
       setManualSource("manual");
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      toast.error(`Failed to save events: ${err.message || err.details || "Unknown error"}`);
+      const message = err instanceof Error ? err.message : (err as { details?: string })?.details;
+      toast.error(`Failed to save events: ${message || "Unknown error"}`);
     } finally {
       setIsLoading(false);
       setLoadingMessage("");
@@ -543,7 +543,7 @@ full url to cover image: ${event.image_url || "TBD"}`;
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="source">Source Platform</Label>
-                  <Select value={manualSource} onValueChange={(val: any) => setManualSource(val)}>
+                  <Select value={manualSource} onValueChange={(val: ScrapedEvent["source"]) => setManualSource(val)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select source" />
                     </SelectTrigger>
@@ -926,7 +926,7 @@ function ErrorMessage({ message }: { message: string }) {
 // Helper: Parse Key-Value text
 function parseEventText(text: string, source: ScrapedEvent["source"]): ScrapedEvent {
   const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-  const data: any = {};
+  const data: Record<string, string> = {};
 
   // Comprehensive Regexes matching user format
   const strategies = [
@@ -1045,7 +1045,14 @@ function parseEventText(text: string, source: ScrapedEvent["source"]): ScrapedEv
 }
 
 // Logic to try and break down an address string
-function parseAddress(addressStr: string) {
+interface ParsedAddress {
+  addressLine1?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+}
+
+function parseAddress(addressStr: string): ParsedAddress {
   if (!addressStr) return {};
 
   // Heuristic: "1000 Water St, Jacksonville, FL 32204"
@@ -1055,7 +1062,7 @@ function parseAddress(addressStr: string) {
   // Simple state/zip logic: "FL 32204"
   const stateZipRegex = /^([A-Z]{2})\s*(\d{5}(?:-\d{4})?)$/i;
 
-  const result: any = {
+  const result: ParsedAddress = {
     addressLine1: parts[0]
   };
 

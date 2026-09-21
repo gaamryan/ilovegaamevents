@@ -62,8 +62,8 @@ export function DiscoverTab() {
       setHasSearched(true);
       if (data.length === 0) toast.info("No events found. Try broader terms.");
       else toast.success(`Found ${data.length} event${data.length === 1 ? "" : "s"}`);
-    } catch (e: any) {
-      toast.error(e?.message || "Discovery failed");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Discovery failed");
     }
   };
 

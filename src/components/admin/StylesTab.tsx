@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { useSettings, useUpdateSetting, DEFAULT_STYLES, type StyleSettings, type ColorOrGradient } from "@/hooks/useSettings";
+import { useSettings, useUpdateSetting, DEFAULT_STYLES, type StyleSettings, type ColorOrGradient, type SiteTheme } from "@/hooks/useSettings";
 import type { Json } from "@/integrations/supabase/types";
 import { Loader2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
@@ -132,7 +132,7 @@ const DEFAULT_THEME = {
 export function StylesTab() {
     const { data: settings, isLoading } = useSettings();
     const updateSetting = useUpdateSetting();
-    const [theme, setTheme] = useState<any>(null);
+    const [theme, setTheme] = useState<SiteTheme | null>(null);
     const [styles, setStyles] = useState<StyleSettings>(DEFAULT_STYLES);
 
     useEffect(() => {
@@ -145,8 +145,8 @@ export function StylesTab() {
         else if (!isLoading && settings) setStyles(DEFAULT_STYLES);
     }, [settings, isLoading]);
 
-    const handleColorChange = (key: string, value: string) => {
-        setTheme((prev: any) => ({ ...prev, colors: { ...prev.colors, [key]: value } }));
+    const handleColorChange = (key: keyof SiteTheme["colors"], value: string) => {
+        setTheme((prev) => prev && ({ ...prev, colors: { ...prev.colors, [key]: value } }));
     };
 
     const updateStyle = <K extends keyof StyleSettings>(key: K, value: StyleSettings[K]) => {
@@ -157,7 +157,9 @@ export function StylesTab() {
         try {
             await updateSetting.mutateAsync({ key: "site_theme", value: theme as unknown as Json });
             await updateSetting.mutateAsync({ key: "site_styles", value: styles as unknown as Json });
-        } catch { }
+        } catch {
+            // useUpdateSetting's onError already surfaces a toast; nothing more to do here.
+        }
     };
 
     const resetDefaults = () => {
@@ -190,7 +192,7 @@ export function StylesTab() {
                 <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">Brand Colors</h4>
                 <p className="text-xs text-muted-foreground">Click swatches to pick, or type HSL like <code>190 95% 32%</code></p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[
+                    {([
                         { key: "primary", label: "Primary (Brand)" },
                         { key: "accent", label: "Accent" },
                         { key: "background", label: "Page Background" },
@@ -198,7 +200,7 @@ export function StylesTab() {
                         { key: "card", label: "Card Default" },
                         { key: "secondary", label: "Secondary" },
                         { key: "border", label: "Border" },
-                    ].map(({ key, label }) => (
+                    ] as const).map(({ key, label }) => (
                         <ColorField key={key} label={label} value={theme.colors[key] || "0 0% 50%"} onChange={(v) => handleColorChange(key, v)} />
                     ))}
                 </div>
@@ -209,7 +211,7 @@ export function StylesTab() {
                 <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">Shape</h4>
                 <div className="space-y-2">
                     <Label>Border Radius</Label>
-                    <Input value={theme.radius} onChange={(e) => setTheme((p: any) => ({ ...p, radius: e.target.value }))} placeholder="1rem" />
+                    <Input value={theme.radius} onChange={(e) => setTheme((p) => p && ({ ...p, radius: e.target.value }))} placeholder="1rem" />
                 </div>
             </div>
 

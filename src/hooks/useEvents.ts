@@ -344,6 +344,7 @@ export function useBulkUpdateEvents() {
         price_min?: number | null;
         price_max?: number | null;
         is_free?: boolean;
+        category_id?: string | null;
       };
       categoryIds?: string[];
     }) => {

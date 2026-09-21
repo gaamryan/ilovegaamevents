@@ -57,6 +57,23 @@ export const DEFAULT_FEED_DISPLAY: FeedDisplaySettings = {
     desktopColumns: 2,
 };
 
+export interface SiteTheme {
+    colors: {
+        primary: string;
+        secondary: string;
+        background: string;
+        foreground: string;
+        card: string;
+        accent: string;
+        border: string;
+    };
+    radius: string;
+    fonts: {
+        heading: string;
+        body: string;
+    };
+}
+
 export interface Settings {
     pagination_limit?: { value: number };
     nav_visibility?: {
@@ -65,22 +82,7 @@ export interface Settings {
     };
     import_template?: string;
     feed_display?: FeedDisplaySettings;
-    site_theme?: {
-        colors: {
-            primary: string;
-            secondary: string;
-            background: string;
-            foreground: string;
-            card: string;
-            accent: string;
-            border: string;
-        };
-        radius: string;
-        fonts: {
-            heading: string;
-            body: string;
-        };
-    };
+    site_theme?: SiteTheme;
     site_styles?: StyleSettings;
     ga_measurement_id?: string;
     looker_studio_url?: string;

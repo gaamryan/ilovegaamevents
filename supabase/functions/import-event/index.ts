@@ -25,6 +25,7 @@ interface EventData {
     location?: string;
     address?: string;
     google_maps_link?: string;
+    _warnings?: string[];
 }
 
 serve(async (req) => {
@@ -296,15 +297,15 @@ serve(async (req) => {
 
         if (warnings.length > 0) {
             console.warn("Import validation warnings:", warnings);
-            (eventData as any)._warnings = warnings;
+            eventData._warnings = warnings;
         }
 
         return new Response(JSON.stringify(eventData), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
 
-    } catch (error: any) {
-        return new Response(JSON.stringify({ error: error.message || "Unknown error" }), {
+    } catch (error) {
+        return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -545,15 +546,16 @@ function parseHtml(html: string, url: string) {
                     if (eventSchema.subEvent && Array.isArray(eventSchema.subEvent)) {
                         is_series = true;
                         dates = eventSchema.subEvent
-                            .map((e: any) => e.startDate)
+                            .map((e: { startDate?: string }) => e.startDate)
                             .filter((d: string) => d)
                             .sort();
                     }
 
                     if (eventSchema.offers) {
                         const offers = Array.isArray(eventSchema.offers) ? eventSchema.offers : [eventSchema.offers];
-                        const lowPriceOffer = offers.sort((a: any, b: any) => (a.price || a.lowPrice || 0) - (b.price || b.lowPrice || 0))[0];
-                        const highPriceOffer = offers.sort((a: any, b: any) => (b.price || b.highPrice || 0) - (a.price || a.lowPrice || 0))[0];
+                        type Offer = { price?: number; lowPrice?: number; highPrice?: number };
+                        const lowPriceOffer = offers.sort((a: Offer, b: Offer) => (a.price || a.lowPrice || 0) - (b.price || b.lowPrice || 0))[0];
+                        const highPriceOffer = offers.sort((a: Offer, b: Offer) => (b.price || b.highPrice || 0) - (a.price || a.lowPrice || 0))[0];
 
                         if (lowPriceOffer) {
                             const min = lowPriceOffer.lowPrice || lowPriceOffer.price;

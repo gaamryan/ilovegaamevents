@@ -17,6 +17,22 @@ interface DiscoverInput {
   fb_url?: string;
 }
 
+// Raw shape returned by the LLM extraction prompt, before validation.
+interface AiExtractedFields {
+  title?: string;
+  description?: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  venue_name?: string;
+  venue_city?: string;
+  venue_address?: string;
+  host_name?: string;
+  image_url?: unknown;
+  price_min?: number | null;
+  price_max?: number | null;
+  is_free?: boolean | null;
+}
+
 interface DiscoveredEvent {
   source: Source;
   source_url: string;
@@ -99,9 +115,9 @@ Deno.serve(async (req) => {
     }
 
     return json({ results });
-  } catch (err: any) {
+  } catch (err) {
     console.error("discover-events error", err);
-    return json({ error: err?.message || "Unknown error" }, 500);
+    return json({ error: err instanceof Error ? err.message : "Unknown error" }, 500);
   }
 });
 
@@ -205,7 +221,7 @@ async function discoverWeb(keyword: string, city: string, state: string, dateFro
     });
     if (!res.ok) return [];
     const data = await res.json();
-    const urls: string[] = (data.results || []).map((r: any) => r.url).filter(Boolean).slice(0, 12);
+    const urls: string[] = (data.results || []).map((r: { url?: string }) => r.url).filter(Boolean).slice(0, 12);
     if (urls.length === 0) return [];
     return await extractManyWithAI(urls, "web", { dateFrom, dateTo });
   } catch (e) {
@@ -294,7 +310,7 @@ ${content}`;
     const aiJson = await aiRes.json();
     const text: string = aiJson?.choices?.[0]?.message?.content || "";
     const cleaned = text.replace(/```json/gi, "").replace(/```/g, "").trim();
-    let parsed: any = null;
+    let parsed: AiExtractedFields | null = null;
     try { parsed = JSON.parse(cleaned); } catch { return null; }
     if (!parsed?.title) return null;
 

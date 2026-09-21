@@ -33,7 +33,12 @@ export function BulkEditDialog({ open, onOpenChange, selectedEventIds, onSuccess
     const [priceMax, setPriceMax] = useState<string>("");
 
     const handleSave = async () => {
-        const updates: any = {};
+        const updates: {
+            category_id?: string;
+            is_free?: boolean;
+            price_min?: number;
+            price_max?: number;
+        } = {};
         let hasUpdates = false;
 
         if (categoryId !== "no-change") {
@@ -106,7 +111,7 @@ export function BulkEditDialog({ open, onOpenChange, selectedEventIds, onSuccess
                     {/* Price */}
                     <div className="space-y-2">
                         <Label>Price</Label>
-                        <Select value={priceType} onValueChange={(val: any) => setPriceType(val)}>
+                        <Select value={priceType} onValueChange={(val: "no-change" | "free" | "paid") => setPriceType(val)}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Select price change" />
                             </SelectTrigger>

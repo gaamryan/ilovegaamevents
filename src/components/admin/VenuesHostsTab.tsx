@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -54,7 +55,7 @@ interface Host {
   name: string;
   website_url: string | null;
   logo_url: string | null;
-  source: string | null;
+  source: Database["public"]["Enums"]["event_source"] | null;
   created_at: string | null;
 }
 
@@ -144,7 +145,8 @@ function VenuesSection() {
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -392,7 +394,8 @@ function HostsSection() {
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -421,7 +424,7 @@ function HostsSection() {
     const { id, created_at, source, ...fields } = host;
     const { error } = await supabase.from("hosts").update({
       ...fields,
-      source: source as any,
+      source,
     }).eq("id", id);
     if (error) {
       toast.error("Failed to update host");

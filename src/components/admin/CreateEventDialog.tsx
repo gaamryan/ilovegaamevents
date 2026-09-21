@@ -18,6 +18,7 @@ import { ImageUpload } from "@/components/admin/ImageUpload";
 import { VenueCombobox } from "@/components/admin/VenueCombobox";
 import { HostCombobox } from "@/components/admin/HostCombobox";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCategories } from "@/hooks/useCategories";
 import { toast } from "sonner";
@@ -158,13 +159,13 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
         is_recurring: data.is_recurring,
         recurrence_frequency: data.is_recurring ? (data.recurrence_frequency || null) : null,
         recurrence_until: data.is_recurring && data.recurrence_until ? data.recurrence_until.toISOString() : null,
-      } as any).select("id").single();
+      }).select("id").single();
 
       if (eventError) throw eventError;
 
       // Auto-generate recurring instances
       if (data.is_recurring && data.recurrence_frequency && data.recurrence_until && parentEvent) {
-        const instances: any[] = [];
+        const instances: Database["public"]["Tables"]["events"]["Insert"][] = [];
         const eventDuration = endDateTime ? endDateTime.getTime() - startDateTime.getTime() : null;
         let currentStart = new Date(startDateTime);
 
@@ -207,7 +208,7 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
         }
 
         if (instances.length > 0) {
-          const { error: instancesError } = await supabase.from("events").insert(instances as any);
+          const { error: instancesError } = await supabase.from("events").insert(instances);
           if (instancesError) throw instancesError;
         }
 
