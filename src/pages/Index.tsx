@@ -42,10 +42,18 @@ const Index = () => {
   }, [isMobile]);
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [filters, setFilters] = useState<EventFilters>({});
   const [sortBy, setSortBy] = useState<SortOption>("date_asc");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
+
+  // Debounce the search box before it hits the network — search is applied
+  // server-side (see below) so every keystroke would otherwise fire a query.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery), 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Read category from URL query param on mount
   useEffect(() => {
@@ -68,6 +76,7 @@ const Index = () => {
     filters,
     sortBy,
     limit: PAGE_LIMIT,
+    search: debouncedSearchQuery,
   });
 
   // Flatten all pages into a single array
@@ -111,16 +120,6 @@ const Index = () => {
     if (filters.categoryIds && filters.categoryIds.length > 0) count++;
     return count;
   }, [filters]);
-
-  // Client-side search filtering
-  const filteredEvents = useMemo(() => {
-    if (!events) return [];
-    if (!searchQuery) return events;
-    return events.filter((event) =>
-      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.description?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [events, searchQuery]);
 
   // Get active filter tags for display
   const activeFilterTags = useMemo(() => {
@@ -278,15 +277,15 @@ const Index = () => {
       {/* Event List or Map */}
       {viewMode === "map" ? (
         <Suspense fallback={<div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}>
-          <EventMap events={filteredEvents} />
+          <EventMap events={events} />
         </Suspense>
       ) : (
         <div className={`p-4 grid gap-4 ${mobileColsClass} ${desktopColsClass} min-h-[600px]`}>
           {eventsLoading ? (
             <EventListSkeleton count={4} />
-          ) : filteredEvents && filteredEvents.length > 0 ? (
+          ) : events && events.length > 0 ? (
             <>
-              {filteredEvents.map((event, index) => (
+              {events.map((event, index) => (
                 <motion.div
                   key={event.id}
                   initial={{ opacity: 0, y: 20 }}

@@ -16,6 +16,14 @@ export interface PaginatedResult<T> {
   count: number | null;
 }
 
+// PostgREST's `.or()` filter syntax uses `,` `.` `:` `(` `)` as delimiters
+// between conditions, so a raw search term containing them has to be
+// backslash-escaped to be treated as literal text instead of breaking (or
+// silently changing) the filter.
+export function escapeForPostgrestOr(term: string): string {
+  return term.replace(/[,.():]/g, (c) => `\\${c}`);
+}
+
 export interface Category {
   id: string;
   name: string;
@@ -79,15 +87,16 @@ interface UseApprovedEventsOptions {
   sortBy?: SortOption;
   page?: number;     // 0-indexed
   limit?: number;    // items per page
+  search?: string;   // matched server-side against title/description
 }
 
 export function useApprovedEvents(options: UseApprovedEventsOptions = {}) {
-  const { categoryId, categoryIds, filters, sortBy = "date_asc", page = 0, limit = 20 } = options;
+  const { categoryId, categoryIds, filters, sortBy = "date_asc", page = 0, limit = 20, search } = options;
 
   return useQuery({
-    queryKey: ["events", "approved", categoryId, categoryIds, filters, sortBy, page, limit],
+    queryKey: ["events", "approved", categoryId, categoryIds, filters, sortBy, page, limit, search],
     queryFn: async () => {
-      const result = await fetchApprovedEvents({ categoryId, categoryIds, filters, sortBy, page, limit });
+      const result = await fetchApprovedEvents({ categoryId, categoryIds, filters, sortBy, page, limit, search });
       return result;
     },
   });
@@ -100,6 +109,7 @@ async function fetchApprovedEvents({
   sortBy = "date_asc",
   page = 0,
   limit = 20,
+  search,
 }: {
   categoryId?: string | null;
   categoryIds?: string[];
@@ -107,6 +117,7 @@ async function fetchApprovedEvents({
   sortBy?: SortOption;
   page?: number;
   limit?: number;
+  search?: string;
 }) {
   const hasCategoryFilter = !!(categoryId || (categoryIds && categoryIds.length > 0));
 
@@ -154,6 +165,12 @@ async function fetchApprovedEvents({
     }
   }
 
+  const trimmedSearch = search?.trim();
+  if (trimmedSearch && trimmedSearch.length >= 2) {
+    const term = escapeForPostgrestOr(trimmedSearch);
+    query = query.or(`title.ilike.%${term}%,description.ilike.%${term}%`);
+  }
+
   switch (sortBy) {
     case "date_asc":
       query = query.order("start_time", { ascending: true });
@@ -187,12 +204,12 @@ async function fetchApprovedEvents({
 }
 
 export function useInfiniteApprovedEvents(options: Omit<UseApprovedEventsOptions, 'page'> = {}) {
-  const { categoryId, categoryIds, filters, sortBy = "date_asc", limit = 20 } = options;
+  const { categoryId, categoryIds, filters, sortBy = "date_asc", limit = 20, search } = options;
 
   return useInfiniteQuery({
-    queryKey: ["events", "approved", "infinite", categoryId, categoryIds, filters, sortBy, limit],
+    queryKey: ["events", "approved", "infinite", categoryId, categoryIds, filters, sortBy, limit, search],
     queryFn: async ({ pageParam = 0 }) => {
-      return fetchApprovedEvents({ categoryId, categoryIds, filters, sortBy, page: pageParam, limit });
+      return fetchApprovedEvents({ categoryId, categoryIds, filters, sortBy, page: pageParam, limit, search });
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) => {
