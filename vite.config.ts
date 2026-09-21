@@ -37,15 +37,6 @@ export default defineConfig(({ mode }) => ({
           }
         ]
       },
-      workbox: {
-        // Essential for Push Notifications to handle background events if using standard SW,
-        // but often we need a custom service worker to listen to 'push' event.
-        // using injectManifest strategy is better for custom push logic.
-      },
-      // Using 'generateSW' by default but we actually need custom logic for push
-      // Let's stick to generateSW for caching first, but we might need to append push listener?
-      // Actually, for Push, we often need a custom worker file.
-      // Let's start with basic PWA config.
     })
   ].filter(Boolean),
   resolve: {

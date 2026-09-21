@@ -25,7 +25,6 @@ import { DiscoverTab } from "@/components/admin/DiscoverTab";
 import { StylesTab } from "@/components/admin/StylesTab";
 import { AnalyticsTab } from "@/components/admin/AnalyticsTab";
 import { BulkEditDialog } from "@/components/admin/BulkEditDialog";
-import { NotificationsBtn } from "@/components/ui/NotificationsBtn";
 import { useAuth, useIsAdmin } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import {
@@ -277,7 +276,6 @@ const Admin = () => {
             Create
           </Button>
         </div>
-        <NotificationsBtn />
       </PageHeader>
       <Tabs defaultValue="events" className="w-full">
         <div className="px-4 border-b border-border bg-background">
