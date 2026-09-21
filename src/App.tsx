@@ -12,7 +12,6 @@ import { Loader2 } from "lucide-react";
 // Lazy-load all pages for code splitting
 const Index = lazy(() => import("./pages/Index"));
 const Categories = lazy(() => import("./pages/Categories"));
-const Saved = lazy(() => import("./pages/Saved"));
 const Admin = lazy(() => import("./pages/Admin"));
 const EventDetail = lazy(() => import("./pages/EventDetail"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -51,7 +50,6 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/events/:id" element={<EventDetail />} />
             <Route path="/categories" element={<Categories />} />
-            <Route path="/saved" element={<Saved />} />
             <Route path="/admin" element={<Admin />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

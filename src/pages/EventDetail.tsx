@@ -10,8 +10,6 @@ import {
   Ticket,
   ExternalLink,
   Share2,
-  Bookmark,
-  BookmarkCheck,
   User,
   Globe,
   Edit,

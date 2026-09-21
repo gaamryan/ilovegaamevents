@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Calendar, MapPin, Bookmark, BookmarkCheck, Repeat, Share2 } from "lucide-react";
+import { Calendar, MapPin, Repeat, Share2 } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { shareEvent } from "@/lib/share";
@@ -21,9 +21,7 @@ interface EventCardProps {
   pricingAtSite?: boolean;
   priceMin?: number;
   priceMax?: number;
-  isSaved?: boolean;
   isRecurring?: boolean;
-  onSave?: (id: string) => void;
   onClick?: (id: string) => void;
 }
 
@@ -39,9 +37,7 @@ export function EventCard({
   pricingAtSite,
   priceMin,
   priceMax,
-  isSaved,
   isRecurring,
-  onSave,
   onClick,
 }: EventCardProps) {
   const navigate = useNavigate();
@@ -98,19 +94,6 @@ export function EventCard({
             aria-label="Share event"
           >
             <Share2 className="h-4 w-4 text-foreground" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onSave?.(id);
-            }}
-            className="w-9 h-9 rounded-full bg-card/90 backdrop-blur-sm flex items-center justify-center transition-all hover:scale-110 active:scale-95"
-          >
-            {isSaved ? (
-              <BookmarkCheck className="h-5 w-5 text-primary" />
-            ) : (
-              <Bookmark className="h-5 w-5 text-foreground" />
-            )}
           </button>
         </div>
 

@@ -77,7 +77,6 @@ export interface SiteTheme {
 export interface Settings {
     pagination_limit?: { value: number };
     nav_visibility?: {
-        saved: boolean;
         admin: boolean;
     };
     import_template?: string;

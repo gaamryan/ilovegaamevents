@@ -30,7 +30,6 @@ export function SettingsTab() {
     const updateSetting = useUpdateSetting();
 
     const [limit, setLimit] = useState(20);
-    const [showSaved, setShowSaved] = useState(false);
     const [showAdmin, setShowAdmin] = useState(false);
     const [importTemplate, setImportTemplate] = useState(DEFAULT_IMPORT_TEMPLATE);
     const [gaMeasurementId, setGaMeasurementId] = useState("");
@@ -44,7 +43,6 @@ export function SettingsTab() {
             setLimit(settings.pagination_limit.value);
         }
         if (settings?.nav_visibility) {
-            setShowSaved(settings.nav_visibility.saved ?? false);
             setShowAdmin(settings.nav_visibility.admin ?? false);
         }
         if (settings?.import_template) {
@@ -82,11 +80,10 @@ export function SettingsTab() {
         });
     };
 
-    const handleNavToggle = (tab: "saved" | "admin", enabled: boolean) => {
-        const current = settings?.nav_visibility || { saved: false, admin: false };
+    const handleNavToggle = (tab: "admin", enabled: boolean) => {
+        const current = settings?.nav_visibility || { admin: false };
         const updated = { ...current, [tab]: enabled };
-        if (tab === "saved") setShowSaved(enabled);
-        if (tab === "admin") setShowAdmin(enabled);
+        setShowAdmin(enabled);
         updateSetting.mutate({
             key: "nav_visibility",
             value: updated
@@ -138,13 +135,6 @@ export function SettingsTab() {
                 </p>
 
                 <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <Label>Saved Events</Label>
-                            <p className="text-sm text-muted-foreground">Allow users to bookmark events</p>
-                        </div>
-                        <Switch checked={showSaved} onCheckedChange={(v) => handleNavToggle("saved", v)} />
-                    </div>
                     <div className="flex items-center justify-between">
                         <div>
                             <Label>Admin</Label>

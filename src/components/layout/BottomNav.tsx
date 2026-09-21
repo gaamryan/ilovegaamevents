@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Compass, Grid3X3, Bookmark, Settings } from "lucide-react";
+import { Compass, Grid3X3, Settings } from "lucide-react";
 import { useSettings } from "@/hooks/useSettings";
 import { useMemo } from "react";
 
@@ -21,11 +21,7 @@ export function BottomNav() {
 
   const navItems = useMemo(() => {
     const items = [...baseNavItems];
-    const nav = settings?.nav_visibility;
-    if (nav?.saved) {
-      items.push({ path: "/saved", label: "Saved", icon: Bookmark });
-    }
-    if (nav?.admin) {
+    if (settings?.nav_visibility?.admin) {
       items.push({ path: "/admin", label: "Admin", icon: Settings });
     }
     return items;
