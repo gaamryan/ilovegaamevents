@@ -84,8 +84,8 @@ export function EventCard({
           fallback={<div className="w-full h-full bg-gradient-primary opacity-20" />}
         />
 
-        {/* Action Buttons */}
-        <div className="absolute top-3 right-3 flex gap-1.5">
+        {/* Action Buttons — hidden on mobile so they don't cover the image; shown from md up */}
+        <div className="absolute top-3 right-3 hidden md:flex gap-1.5">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -114,9 +114,9 @@ export function EventCard({
           </button>
         </div>
 
-        {/* Price Badge */}
+        {/* Price Badge — hidden on mobile so it doesn't cover the image; shown from md up */}
         {price && (
-          <div className="absolute bottom-3 left-3 px-3 py-1 rounded-full bg-card/90 backdrop-blur-sm text-sm font-semibold">
+          <div className="absolute bottom-3 left-3 hidden md:block px-3 py-1 rounded-full bg-card/90 backdrop-blur-sm text-sm font-semibold">
             {price}
           </div>
         )}
