@@ -35,14 +35,14 @@ async function fetchSuggestions(query: string): Promise<SearchSuggestion[]> {
       .limit(3),
   ]);
 
-  const eventSuggestions: SearchSuggestion[] = (eventsRes.data || []).map((e: any) => ({
+  const eventSuggestions: SearchSuggestion[] = (eventsRes.data || []).map((e) => ({
     id: e.id,
     label: e.title,
     type: "event" as const,
     subtitle: e.venue?.name,
   }));
 
-  const venueSuggestions: SearchSuggestion[] = (venuesRes.data || []).map((v: any) => ({
+  const venueSuggestions: SearchSuggestion[] = (venuesRes.data || []).map((v) => ({
     id: v.id,
     label: v.name,
     type: "venue" as const,

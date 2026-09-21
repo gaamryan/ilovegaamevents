@@ -90,7 +90,7 @@ const EventDetail = () => {
 
   const getPriceDisplay = () => {
     if (event?.is_free) return "Free";
-    if ((event as any)?.pricing_at_site) return "Pricing available at event site";
+    if (event?.pricing_at_site) return "Pricing available at event site";
     if (event?.price_min && event?.price_max && event.price_min !== event.price_max) {
       return `$${event.price_min} - $${event.price_max}`;
     }
@@ -229,13 +229,13 @@ const EventDetail = () => {
                       {event.end_time &&
                         ` - ${format(new Date(event.end_time), "h:mm a")}`}
                     </p>
-                    {(event as any).is_recurring && (
+                    {event.is_recurring && (
                       <div className="flex items-center gap-1.5 mt-1">
                         <Repeat className="h-3.5 w-3.5 text-primary" />
                         <span className="text-sm text-primary font-medium capitalize">
-                          {(event as any).recurrence_frequency === "biweekly"
+                          {event.recurrence_frequency === "biweekly"
                             ? "Every 2 weeks"
-                            : `Every ${(event as any).recurrence_frequency || "week"}`}
+                            : `Every ${event.recurrence_frequency || "week"}`}
                         </span>
                       </div>
                     )}
@@ -345,7 +345,7 @@ const EventDetail = () => {
           <SimilarEvents
             eventId={event.id}
             categoryIds={event.event_categories?.map(ec => ec.category.id) || []}
-            venueId={(event.venue as any)?.id}
+            venueId={event.venue?.id}
           />
         </div>
       )}

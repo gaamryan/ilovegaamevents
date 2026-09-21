@@ -152,7 +152,7 @@ async function discoverMeetup(keyword: string, city: string, state: string, date
     const data = await res.json();
     const content: string = data?.data?.content || data?.content || "";
     const urls = Array.from(new Set(
-      [...content.matchAll(/https:\/\/www\.meetup\.com\/[^\/\s)]+\/events\/\d+/gi)].map(m => m[0])
+      [...content.matchAll(/https:\/\/www\.meetup\.com\/[^/\s)]+\/events\/\d+/gi)].map(m => m[0])
     )).slice(0, 20);
 
     if (urls.length === 0) return [];

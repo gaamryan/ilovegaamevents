@@ -12,7 +12,7 @@ export function useSingleEvent(eventId: string | undefined) {
         .from("events")
         .select(`
           *,
-          venue:venues(id, name, city, address_line_1, address_line_2, state, postal_code, latitude, longitude),
+          venue:venues(id, name, city, address_line_1, address_line_2, state, postal_code, map_url, latitude, longitude),
           host:hosts(id, name, logo_url, website_url),
           event_categories(
             category:categories(id, name, slug, icon, color)
@@ -24,25 +24,7 @@ export function useSingleEvent(eventId: string | undefined) {
       if (error) throw error;
       if (!data) throw new Error("Event not found");
 
-      return data as unknown as Event & {
-        venue: {
-          id: string;
-          name: string;
-          city: string | null;
-          address_line_1: string | null;
-          address_line_2: string | null;
-          state: string | null;
-          postal_code: string | null;
-          latitude: number | null;
-          longitude: number | null;
-        } | null;
-        host: {
-          id: string;
-          name: string;
-          logo_url: string | null;
-          website_url: string | null;
-        } | null;
-      };
+      return data as unknown as Event;
     },
     enabled: !!eventId,
   });

@@ -302,7 +302,7 @@ const Index = () => {
                     venueName={event.venue?.name}
                     categories={event.event_categories?.map(ec => ec.category)}
                     isFree={event.is_free || false}
-                    pricingAtSite={(event as any).pricing_at_site || false}
+                    pricingAtSite={event.pricing_at_site || false}
                     priceMin={event.price_min || undefined}
                     priceMax={event.price_max || undefined}
                     isRecurring={event.is_recurring || false}

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 
 export interface ColorOrGradient {
@@ -81,7 +82,9 @@ export interface Settings {
         };
     };
     site_styles?: StyleSettings;
-    [key: string]: any;
+    ga_measurement_id?: string;
+    looker_studio_url?: string;
+    [key: string]: unknown;
 }
 
 const defaultCog = (color: string): ColorOrGradient => ({
@@ -123,13 +126,11 @@ export function useSettings() {
     return useQuery({
         queryKey: ["settings"],
         queryFn: async () => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const { data, error } = await (supabase as any).from("settings").select("key, value");
+            const { data, error } = await supabase.from("settings").select("key, value");
             if (error) throw error;
 
             const settingsObject: Settings = {};
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            data.forEach((item: any) => {
+            data.forEach((item) => {
                 settingsObject[item.key] = item.value;
             });
             return settingsObject;
@@ -142,10 +143,8 @@ export function useUpdateSetting() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        mutationFn: async ({ key, value }: { key: string; value: any }) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const { error } = await (supabase as any).from("settings")
+        mutationFn: async ({ key, value }: { key: string; value: Json }) => {
+            const { error } = await supabase.from("settings")
                 .upsert({ key, value });
             if (error) throw error;
         },

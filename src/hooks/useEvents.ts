@@ -35,12 +35,16 @@ export interface Event {
   price_min: number | null;
   price_max: number | null;
   is_free: boolean | null;
+  pricing_at_site: boolean | null;
   status: "draft" | "pending" | "approved" | "rejected";
   source: "manual" | "eventbrite" | "meetup" | "ticketspice" | "facebook";
   source_url: string | null;
   featured: boolean | null;
   is_recurring: boolean | null;
   recurrence_frequency: string | null;
+  // Only selected by the admin list and single-event queries.
+  recurrence_until?: string | null;
+  parent_event_id?: string | null;
   created_at: string;
   venue: {
     id: string;
@@ -48,10 +52,19 @@ export interface Event {
     city: string | null;
     latitude: number | null;
     longitude: number | null;
+    // Only selected by the admin list and single-event queries.
+    address_line_1?: string | null;
+    address_line_2?: string | null;
+    state?: string | null;
+    postal_code?: string | null;
+    map_url?: string | null;
   } | null;
   host: {
     id: string;
     name: string;
+    // Only selected by the admin list and single-event queries.
+    logo_url?: string | null;
+    website_url?: string | null;
   } | null;
   // JOIN table structure
   event_categories: {
@@ -159,7 +172,7 @@ async function fetchApprovedEvents({
   const { data, error, count } = await query;
   if (error) throw error;
 
-  let filteredData = data as any[];
+  let filteredData = data as Event[];
 
   if (filters?.location) {
     const locationLower = filters.location.toLowerCase();
@@ -233,7 +246,7 @@ export function useAllEvents(filters?: {
         .from("events")
         .select(`
           ${ADMIN_EVENT_COLUMNS},
-          venue:venues(${VENUE_LIST_COLUMNS}, address_line_1, address_line_2, state, postal_code),
+          venue:venues(${VENUE_LIST_COLUMNS}, address_line_1, address_line_2, state, postal_code, map_url),
           host:hosts(${HOST_LIST_COLUMNS}, logo_url, website_url),
           event_categories(
             category:categories(${CATEGORY_COLUMNS})

@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useSettings, useUpdateSetting, DEFAULT_STYLES, type StyleSettings, type ColorOrGradient } from "@/hooks/useSettings";
+import type { Json } from "@/integrations/supabase/types";
 import { Loader2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -154,8 +155,8 @@ export function StylesTab() {
 
     const saveAll = async () => {
         try {
-            await updateSetting.mutateAsync({ key: "site_theme", value: theme });
-            await updateSetting.mutateAsync({ key: "site_styles", value: styles });
+            await updateSetting.mutateAsync({ key: "site_theme", value: theme as unknown as Json });
+            await updateSetting.mutateAsync({ key: "site_styles", value: styles as unknown as Json });
         } catch { }
     };
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -57,6 +57,14 @@ import { cn } from "@/lib/utils";
 type StatusFilter = "pending" | "approved" | "rejected" | "draft" | undefined;
 type SourceFilter = "manual" | "eventbrite" | "meetup" | "ticketspice" | "facebook" | undefined;
 
+// The edit drawer mutates venue/host as loose in-progress drafts (e.g. clearing
+// venue.id when the user types a brand-new venue name), so those fields are
+// widened to Partial while editing.
+type EditableEvent = Omit<Event, "venue" | "host"> & {
+  venue: Partial<NonNullable<Event["venue"]>> | null;
+  host: Partial<NonNullable<Event["host"]>> | null;
+};
+
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
   approved: "bg-green-100 text-green-800",
@@ -73,7 +81,7 @@ const Admin = () => {
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>(undefined);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedEvents, setSelectedEvents] = useState<Set<string>>(new Set());
-  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [editingEvent, setEditingEvent] = useState<EditableEvent | null>(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -97,6 +105,14 @@ const Admin = () => {
   const editId = searchParams.get("edit");
   const { data: directEvent } = useSingleEvent(editId || undefined);
 
+  const clearEditParam = useCallback(() => {
+    setSearchParams((prev) => {
+      const newParams = new URLSearchParams(prev);
+      newParams.delete("edit");
+      return newParams;
+    }, { replace: true });
+  }, [setSearchParams]);
+
   useEffect(() => {
     // Priority 1: Check if the event is already in the main events list
     if (editId && events && !editingEvent) {
@@ -110,16 +126,10 @@ const Admin = () => {
 
     // Priority 2: Use the direct fetch if the list doesn't contain it (e.g. filtered)
     if (editId && directEvent && !editingEvent) {
-      setEditingEvent(directEvent as any);
+      setEditingEvent(directEvent);
       clearEditParam();
     }
-  }, [editId, events, directEvent, editingEvent]);
-
-  const clearEditParam = () => {
-    const newParams = new URLSearchParams(searchParams);
-    newParams.delete("edit");
-    setSearchParams(newParams, { replace: true });
-  };
+  }, [editId, events, directEvent, editingEvent, clearEditParam]);
 
   const updateStatus = useUpdateEventStatus();
   const deleteEvents = useDeleteEvents();
@@ -422,7 +432,7 @@ const Admin = () => {
                         {event.featured && (
                           <span className="text-xs">⭐</span>
                         )}
-                        {(event as any).is_recurring && (
+                        {event.is_recurring && (
                           <span className="text-xs flex items-center gap-0.5 text-primary">
                             <Repeat className="h-3 w-3" />
                           </span>
@@ -541,7 +551,7 @@ const Admin = () => {
                     value={editingEvent.host?.name || ''}
                     onChange={(e) => {
                       const newHost = { ...(editingEvent.host || { id: '' }), name: e.target.value };
-                      setEditingEvent({ ...editingEvent, host: newHost as any });
+                      setEditingEvent({ ...editingEvent, host: newHost });
                     }}
                   />
                 </div>
@@ -579,62 +589,62 @@ const Admin = () => {
                   <VenueCombobox
                     name={editingEvent.venue?.name || ''}
                     city={editingEvent.venue?.city || ''}
-                    address={(editingEvent.venue as any)?.address_line_1 || ''}
+                    address={editingEvent.venue?.address_line_1 || ''}
                     onSelect={(venue) => {
                       if (venue) {
-                        setEditingEvent({ ...editingEvent, venue: venue as any });
+                        setEditingEvent({ ...editingEvent, venue });
                       } else {
                         // Clear venue id when typing new name
                         const newVenue = { ...(editingEvent.venue || {}), id: undefined };
-                        setEditingEvent({ ...editingEvent, venue: newVenue as any });
+                        setEditingEvent({ ...editingEvent, venue: newVenue });
                       }
                     }}
                     onNameChange={(v) => {
                       const newVenue = { ...(editingEvent.venue || {}), name: v };
-                      setEditingEvent({ ...editingEvent, venue: newVenue as any });
+                      setEditingEvent({ ...editingEvent, venue: newVenue });
                     }}
                     onCityChange={(v) => {
                       const newVenue = { ...(editingEvent.venue || {}), city: v };
-                      setEditingEvent({ ...editingEvent, venue: newVenue as any });
+                      setEditingEvent({ ...editingEvent, venue: newVenue });
                     }}
                     onAddressChange={(v) => {
                       const newVenue = { ...(editingEvent.venue || {}), address_line_1: v };
-                      setEditingEvent({ ...editingEvent, venue: newVenue as any });
+                      setEditingEvent({ ...editingEvent, venue: newVenue });
                     }}
                   />
                   <div className="grid grid-cols-2 gap-2">
                     <Input
                       placeholder="Address Line 2"
-                      value={(editingEvent.venue as any)?.address_line_2 || ''}
+                      value={editingEvent.venue?.address_line_2 || ''}
                       onChange={(e) => {
                         const newVenue = { ...(editingEvent.venue || {}), address_line_2: e.target.value };
-                        setEditingEvent({ ...editingEvent, venue: newVenue as any });
+                        setEditingEvent({ ...editingEvent, venue: newVenue });
                       }}
                     />
                     <Input
                       placeholder="State"
-                      value={(editingEvent.venue as any)?.state || ''}
+                      value={editingEvent.venue?.state || ''}
                       onChange={(e) => {
                         const newVenue = { ...(editingEvent.venue || {}), state: e.target.value };
-                        setEditingEvent({ ...editingEvent, venue: newVenue as any });
+                        setEditingEvent({ ...editingEvent, venue: newVenue });
                       }}
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <Input
                       placeholder="Zip"
-                      value={(editingEvent.venue as any)?.postal_code || ''}
+                      value={editingEvent.venue?.postal_code || ''}
                       onChange={(e) => {
                         const newVenue = { ...(editingEvent.venue || {}), postal_code: e.target.value };
-                        setEditingEvent({ ...editingEvent, venue: newVenue as any });
+                        setEditingEvent({ ...editingEvent, venue: newVenue });
                       }}
                     />
                     <Input
                       placeholder="Google Maps Link"
-                      value={(editingEvent.venue as any)?.map_url || ''}
+                      value={editingEvent.venue?.map_url || ''}
                       onChange={(e) => {
                         const newVenue = { ...(editingEvent.venue || {}), map_url: e.target.value };
-                        setEditingEvent({ ...editingEvent, venue: newVenue as any });
+                        setEditingEvent({ ...editingEvent, venue: newVenue });
                       }}
                     />
                   </div>
@@ -665,7 +675,7 @@ const Admin = () => {
                   <Checkbox
                     id="is_free"
                     checked={!!editingEvent.is_free}
-                    onCheckedChange={(checked) => setEditingEvent({ ...editingEvent, is_free: !!checked, ...( checked ? { pricing_at_site: false } : {}) } as any)}
+                    onCheckedChange={(checked) => setEditingEvent({ ...editingEvent, is_free: !!checked, ...( checked ? { pricing_at_site: false } : {}) })}
                   />
                   <label htmlFor="is_free" className="text-sm font-medium cursor-pointer">This is a free event</label>
                 </div>
@@ -673,8 +683,8 @@ const Admin = () => {
                 <div className="flex items-center gap-2 py-2">
                   <Checkbox
                     id="pricing_at_site"
-                    checked={!!(editingEvent as any).pricing_at_site}
-                    onCheckedChange={(checked) => setEditingEvent({ ...editingEvent, pricing_at_site: !!checked, ...( checked ? { is_free: false } : {}) } as any)}
+                    checked={!!editingEvent.pricing_at_site}
+                    onCheckedChange={(checked) => setEditingEvent({ ...editingEvent, pricing_at_site: !!checked, ...( checked ? { is_free: false } : {}) })}
                   />
                   <label htmlFor="pricing_at_site" className="text-sm font-medium cursor-pointer">Pricing available at event site</label>
                 </div>
@@ -692,20 +702,20 @@ const Admin = () => {
                 <div className="flex items-center gap-2 py-2">
                   <Checkbox
                     id="is_recurring"
-                    checked={!!(editingEvent as any).is_recurring}
-                    onCheckedChange={(checked) => setEditingEvent({ ...editingEvent, is_recurring: !!checked } as any)}
+                    checked={!!editingEvent.is_recurring}
+                    onCheckedChange={(checked) => setEditingEvent({ ...editingEvent, is_recurring: !!checked })}
                   />
                   <label htmlFor="is_recurring" className="text-sm font-medium cursor-pointer">🔁 Repeating event</label>
                 </div>
 
-                {(editingEvent as any).is_recurring && (
+                {editingEvent.is_recurring && (
                   <div className="space-y-2 pl-6 border-l-2 border-primary/20">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-muted-foreground">Frequency</label>
                       <select
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                        value={(editingEvent as any).recurrence_frequency || ""}
-                        onChange={(e) => setEditingEvent({ ...editingEvent, recurrence_frequency: e.target.value || null } as any)}
+                        value={editingEvent.recurrence_frequency || ""}
+                        onChange={(e) => setEditingEvent({ ...editingEvent, recurrence_frequency: e.target.value || null })}
                       >
                         <option value="">Select frequency</option>
                         <option value="daily">Daily</option>
@@ -723,20 +733,20 @@ const Admin = () => {
                             variant="outline"
                             className={cn(
                               "w-full justify-start text-left font-normal",
-                              !(editingEvent as any).recurrence_until && "text-muted-foreground"
+                              !editingEvent.recurrence_until && "text-muted-foreground"
                             )}
                           >
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {(editingEvent as any).recurrence_until
-                              ? format(new Date((editingEvent as any).recurrence_until), "PPP")
+                            {editingEvent.recurrence_until
+                              ? format(new Date(editingEvent.recurrence_until), "PPP")
                               : "Pick end date"}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
                           <Calendar
                             mode="single"
-                            selected={(editingEvent as any).recurrence_until ? new Date((editingEvent as any).recurrence_until) : undefined}
-                            onSelect={(date) => setEditingEvent({ ...editingEvent, recurrence_until: date ? date.toISOString() : null } as any)}
+                            selected={editingEvent.recurrence_until ? new Date(editingEvent.recurrence_until) : undefined}
+                            onSelect={(date) => setEditingEvent({ ...editingEvent, recurrence_until: date ? date.toISOString() : null })}
                             initialFocus
                             className="p-3 pointer-events-auto"
                           />
@@ -745,14 +755,14 @@ const Admin = () => {
                     </div>
 
                     {/* Edit all instances button */}
-                    {(editingEvent as any).parent_event_id || (editingEvent as any).is_recurring ? (
+                    {editingEvent.parent_event_id || editingEvent.is_recurring ? (
                       <div className="flex gap-2 pt-1">
                         <Button
                           variant="outline"
                           size="sm"
                           className="text-xs"
                           onClick={async () => {
-                            const parentId = (editingEvent as any).parent_event_id || editingEvent.id;
+                            const parentId = editingEvent.parent_event_id || editingEvent.id;
                             let imageUrl = editingEvent.image_url;
                             try {
                               imageUrl = await imageUploadRef.current?.applyCrop() || imageUrl;
@@ -771,7 +781,7 @@ const Admin = () => {
                                 price_max: editingEvent.price_max,
                                 is_free: editingEvent.is_free,
                                 status: editingEvent.status,
-                              } as any)
+                              })
                               .or(`id.eq.${parentId},parent_event_id.eq.${parentId}`);
                             if (error) {
                               toast.error("Failed to update all instances");
@@ -790,7 +800,7 @@ const Admin = () => {
                           size="sm"
                           className="text-xs text-destructive hover:text-destructive"
                           onClick={async () => {
-                            const parentId = (editingEvent as any).parent_event_id || editingEvent.id;
+                            const parentId = editingEvent.parent_event_id || editingEvent.id;
                             // Delete all instances with the same parent
                             const { error: err1 } = await supabase
                               .from("events")
@@ -894,19 +904,19 @@ const Admin = () => {
                           venue: {
                             ...prev.venue, // Keep existing ID
                             name: data.location || prev.venue?.name,
-                            address_line_1: data.address || (prev.venue as any)?.address_line_1,
-                            map_url: data.google_maps_link || (prev.venue as any)?.map_url
-                          } as any,
+                            address_line_1: data.address || prev.venue?.address_line_1,
+                            map_url: data.google_maps_link || prev.venue?.map_url
+                          },
                           host: {
                             ...prev.host, // Keep existing ID
                             name: data.organizer || prev.host?.name
-                          } as any
+                          }
                         }) : null);
 
                         toast.success("Refreshed details from source");
                       } catch (error) {
                         console.error("Refresh failed:", error);
-                        toast.error("Failed to refresh: " + (error as any).message);
+                        toast.error("Failed to refresh: " + (error instanceof Error ? error.message : String(error)));
                       } finally {
                         setIsRefreshing(false);
                       }
@@ -935,12 +945,12 @@ const Admin = () => {
                       price_min: editingEvent.price_min,
                       price_max: editingEvent.price_max,
                       is_free: editingEvent.is_free,
-                      pricing_at_site: (editingEvent as any).pricing_at_site || false,
+                      pricing_at_site: editingEvent.pricing_at_site || false,
                       ticket_url: editingEvent.ticket_url,
                       featured: editingEvent.featured,
-                      is_recurring: (editingEvent as any).is_recurring || false,
-                      recurrence_frequency: (editingEvent as any).recurrence_frequency || null,
-                    } as any).eq('id', editingEvent.id);
+                      is_recurring: editingEvent.is_recurring || false,
+                      recurrence_frequency: editingEvent.recurrence_frequency || null,
+                    }).eq('id', editingEvent.id);
 
                     // 2. Update or Create Venue
                     if (!eventError && editingEvent.venue?.name) {
@@ -948,24 +958,24 @@ const Admin = () => {
                         // Update existing venue
                         const { error: venueError } = await supabase.from('venues').update({
                           name: editingEvent.venue.name,
-                          address_line_1: (editingEvent.venue as any).address_line_1,
-                          address_line_2: (editingEvent.venue as any).address_line_2,
+                          address_line_1: editingEvent.venue.address_line_1,
+                          address_line_2: editingEvent.venue.address_line_2,
                           city: editingEvent.venue.city,
-                          state: (editingEvent.venue as any).state,
-                          postal_code: (editingEvent.venue as any).postal_code,
-                          map_url: (editingEvent.venue as any).map_url
+                          state: editingEvent.venue.state,
+                          postal_code: editingEvent.venue.postal_code,
+                          map_url: editingEvent.venue.map_url
                         }).eq('id', editingEvent.venue.id);
                         if (venueError) console.error("Failed to update venue:", venueError);
                       } else {
                         // Create new venue and link to event
                         const { data: newVenue, error: venueError } = await supabase.from('venues').insert({
                           name: editingEvent.venue.name,
-                          address_line_1: (editingEvent.venue as any).address_line_1 || null,
-                          address_line_2: (editingEvent.venue as any).address_line_2 || null,
+                          address_line_1: editingEvent.venue.address_line_1 || null,
+                          address_line_2: editingEvent.venue.address_line_2 || null,
                           city: editingEvent.venue.city || null,
-                          state: (editingEvent.venue as any).state || null,
-                          postal_code: (editingEvent.venue as any).postal_code || null,
-                          map_url: (editingEvent.venue as any).map_url || null
+                          state: editingEvent.venue.state || null,
+                          postal_code: editingEvent.venue.postal_code || null,
+                          map_url: editingEvent.venue.map_url || null
                         }).select('id').single();
                         if (venueError) {
                           console.error("Failed to create venue:", venueError);
