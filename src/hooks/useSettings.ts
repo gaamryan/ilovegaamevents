@@ -57,6 +57,11 @@ export const DEFAULT_FEED_DISPLAY: FeedDisplaySettings = {
     desktopColumns: 2,
 };
 
+// Bounds match the admin field (SettingsTab) — shown there in seconds.
+export const DEFAULT_HERO_SLIDE_INTERVAL_MS = 6000;
+export const MIN_HERO_SLIDE_INTERVAL_MS = 3000;
+export const MAX_HERO_SLIDE_INTERVAL_MS = 20000;
+
 export interface SiteTheme {
     colors: {
         primary: string;
@@ -85,6 +90,7 @@ export interface Settings {
     site_styles?: StyleSettings;
     ga_measurement_id?: string;
     looker_studio_url?: string;
+    hero_slide_interval_ms?: number;
     [key: string]: unknown;
 }
 

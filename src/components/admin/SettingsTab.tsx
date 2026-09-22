@@ -5,7 +5,14 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useSettings, useUpdateSetting, DEFAULT_FEED_DISPLAY } from "@/hooks/useSettings";
+import {
+    useSettings,
+    useUpdateSetting,
+    DEFAULT_FEED_DISPLAY,
+    DEFAULT_HERO_SLIDE_INTERVAL_MS,
+    MIN_HERO_SLIDE_INTERVAL_MS,
+    MAX_HERO_SLIDE_INTERVAL_MS,
+} from "@/hooks/useSettings";
 import { Loader2, CheckCircle2, XCircle, ExternalLink, ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -30,6 +37,7 @@ export function SettingsTab() {
     const updateSetting = useUpdateSetting();
 
     const [limit, setLimit] = useState(20);
+    const [heroSlideSeconds, setHeroSlideSeconds] = useState(DEFAULT_HERO_SLIDE_INTERVAL_MS / 1000);
     const [showAdmin, setShowAdmin] = useState(false);
     const [importTemplate, setImportTemplate] = useState(DEFAULT_IMPORT_TEMPLATE);
     const [gaMeasurementId, setGaMeasurementId] = useState("");
@@ -41,6 +49,9 @@ export function SettingsTab() {
     useEffect(() => {
         if (settings?.pagination_limit?.value) {
             setLimit(settings.pagination_limit.value);
+        }
+        if (settings?.hero_slide_interval_ms) {
+            setHeroSlideSeconds(Math.round(settings.hero_slide_interval_ms / 1000));
         }
         if (settings?.nav_visibility) {
             setShowAdmin(settings.nav_visibility.admin ?? false);
@@ -77,6 +88,18 @@ export function SettingsTab() {
         updateSetting.mutate({
             key: "pagination_limit",
             value: { value: parseInt(limit.toString()) }
+        });
+    };
+
+    const handleSaveHeroInterval = () => {
+        const clampedSeconds = Math.min(
+            MAX_HERO_SLIDE_INTERVAL_MS / 1000,
+            Math.max(MIN_HERO_SLIDE_INTERVAL_MS / 1000, heroSlideSeconds)
+        );
+        setHeroSlideSeconds(clampedSeconds);
+        updateSetting.mutate({
+            key: "hero_slide_interval_ms",
+            value: clampedSeconds * 1000,
         });
     };
 
@@ -124,6 +147,27 @@ export function SettingsTab() {
                     </div>
                     <p className="text-sm text-muted-foreground">
                         Number of events to load at once on the home page.
+                    </p>
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="hero-interval">Hero slideshow speed (seconds)</Label>
+                    <div className="flex gap-2">
+                        <Input
+                            id="hero-interval"
+                            type="number"
+                            min={MIN_HERO_SLIDE_INTERVAL_MS / 1000}
+                            max={MAX_HERO_SLIDE_INTERVAL_MS / 1000}
+                            value={heroSlideSeconds}
+                            onChange={(e) => setHeroSlideSeconds(parseInt(e.target.value))}
+                            className="max-w-[150px]"
+                        />
+                        <Button onClick={handleSaveHeroInterval} disabled={updateSetting.isPending}>
+                            {updateSetting.isPending ? "Saving..." : "Save"}
+                        </Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        How long each "Don't Miss" hero slide stays on screen before auto-advancing ({MIN_HERO_SLIDE_INTERVAL_MS / 1000}–{MAX_HERO_SLIDE_INTERVAL_MS / 1000}s).
                     </p>
                 </div>
             </div>
