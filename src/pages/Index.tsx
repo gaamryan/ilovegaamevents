@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Loader2, Map, List } from "lucide-react";
+import { Search, X, Loader2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/ui/header";
 import { EventCard } from "@/components/events/EventCard";
@@ -12,7 +12,6 @@ import type { EventFilters } from "@/components/events/FilterDrawer";
 import { SortSelect, type SortOption } from "@/components/events/SortSelect";
 
 // Lazy-load heavy components — defers react-day-picker (106KB) until drawer opens
-const EventMap = lazy(() => import("@/components/events/EventMap").then(m => ({ default: m.EventMap })));
 const FilterDrawer = lazy(() => import("@/components/events/FilterDrawer").then(m => ({ default: m.FilterDrawer })));
 
 import { useInfiniteApprovedEvents } from "@/hooks/useEvents";
@@ -46,7 +45,6 @@ const Index = () => {
   const [filters, setFilters] = useState<EventFilters>({});
   const [sortBy, setSortBy] = useState<SortOption>("date_asc");
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<"list" | "map">("list");
 
   // Debounce the search box before it hits the network — search is applied
   // server-side (see below) so every keystroke would otherwise fire a query.
@@ -225,15 +223,6 @@ const Index = () => {
               </div>
             </div>
             <SortSelect value={sortBy} onChange={setSortBy} />
-            <Button
-              variant={viewMode === "map" ? "default" : "outline"}
-              size="icon"
-              className="h-9 w-9 shrink-0"
-              onClick={() => setViewMode(v => v === "list" ? "map" : "list")}
-              aria-label={viewMode === "list" ? "Switch to map view" : "Switch to list view"}
-            >
-              {viewMode === "list" ? <Map className="h-4 w-4" /> : <List className="h-4 w-4" />}
-            </Button>
           </div>
         </div>
 
@@ -274,81 +263,75 @@ const Index = () => {
       {/* Featured Events Section */}
       <FeaturedEvents />
 
-      {/* Event List or Map */}
-      {viewMode === "map" ? (
-        <Suspense fallback={<div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}>
-          <EventMap events={events} />
-        </Suspense>
-      ) : (
-        <div className={`p-4 grid gap-4 ${mobileColsClass} ${desktopColsClass} min-h-[600px]`}>
-          {eventsLoading ? (
-            <EventListSkeleton count={4} />
-          ) : events && events.length > 0 ? (
-            <>
-              {events.map((event, index) => (
-                <motion.div
-                  key={event.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: Math.min(index * 0.05, 0.5) }}
-                >
-                  <EventCard
-                    id={event.id}
-                    title={event.title}
-                    description={event.description || undefined}
-                    imageUrl={event.image_url || undefined}
-                    startTime={new Date(event.start_time)}
-                    venueName={event.venue?.name}
-                    categories={event.event_categories?.map(ec => ec.category)}
-                    isFree={event.is_free || false}
-                    pricingAtSite={event.pricing_at_site || false}
-                    priceMin={event.price_min || undefined}
-                    priceMax={event.price_max || undefined}
-                    isRecurring={event.is_recurring || false}
-                  />
-                </motion.div>
-              ))}
+      {/* Event List */}
+      <div className={`p-4 grid gap-4 ${mobileColsClass} ${desktopColsClass} min-h-[600px]`}>
+        {eventsLoading ? (
+          <EventListSkeleton count={4} />
+        ) : events && events.length > 0 ? (
+          <>
+            {events.map((event, index) => (
+              <motion.div
+                key={event.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(index * 0.05, 0.5) }}
+              >
+                <EventCard
+                  id={event.id}
+                  title={event.title}
+                  description={event.description || undefined}
+                  imageUrl={event.image_url || undefined}
+                  startTime={new Date(event.start_time)}
+                  venueName={event.venue?.name}
+                  categories={event.event_categories?.map(ec => ec.category)}
+                  isFree={event.is_free || false}
+                  pricingAtSite={event.pricing_at_site || false}
+                  priceMin={event.price_min || undefined}
+                  priceMax={event.price_max || undefined}
+                  isRecurring={event.is_recurring || false}
+                />
+              </motion.div>
+            ))}
 
-              {/* Infinite scroll sentinel */}
-              <div ref={loadMoreRef} className="col-span-full flex justify-center py-6">
-                {isFetchingNextPage && (
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                )}
-                {!hasNextPage && events.length > PAGE_LIMIT && (
-                  <p className="text-sm text-muted-foreground">You've seen all events</p>
-                )}
-              </div>
-            </>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-16"
-            >
-              <div className="text-6xl mb-4">🎉</div>
-              <h3 className="text-lg font-semibold mb-2">No events found</h3>
-              <p className="text-muted-foreground text-sm">
-                {activeFilterCount > 0 || searchQuery
-                  ? "Try adjusting your filters to see more events."
-                  : "Events will appear here once approved."}
-              </p>
-              {(activeFilterCount > 0 || searchQuery) && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-4"
-                  onClick={() => {
-                    setFilters({});
-                    setSearchQuery("");
-                  }}
-                >
-                  Clear all filters
-                </Button>
+            {/* Infinite scroll sentinel */}
+            <div ref={loadMoreRef} className="col-span-full flex justify-center py-6">
+              {isFetchingNextPage && (
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               )}
-            </motion.div>
-          )}
-        </div>
-      )}
+              {!hasNextPage && events.length > PAGE_LIMIT && (
+                <p className="text-sm text-muted-foreground">You've seen all events</p>
+              )}
+            </div>
+          </>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-16"
+          >
+            <div className="text-6xl mb-4">🎉</div>
+            <h3 className="text-lg font-semibold mb-2">No events found</h3>
+            <p className="text-muted-foreground text-sm">
+              {activeFilterCount > 0 || searchQuery
+                ? "Try adjusting your filters to see more events."
+                : "Events will appear here once approved."}
+            </p>
+            {(activeFilterCount > 0 || searchQuery) && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4"
+                onClick={() => {
+                  setFilters({});
+                  setSearchQuery("");
+                }}
+              >
+                Clear all filters
+              </Button>
+            )}
+          </motion.div>
+        )}
+      </div>
     </AppLayout>
   );
 };
