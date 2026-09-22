@@ -98,6 +98,7 @@ export type Database = {
           pricing_at_site: boolean | null
           recurrence_frequency: string | null
           recurrence_until: string | null
+          slug: string
           source: Database["public"]["Enums"]["event_source"] | null
           source_id: string | null
           source_url: string | null
@@ -128,6 +129,7 @@ export type Database = {
           pricing_at_site?: boolean | null
           recurrence_frequency?: string | null
           recurrence_until?: string | null
+          slug?: string
           source?: Database["public"]["Enums"]["event_source"] | null
           source_id?: string | null
           source_url?: string | null
@@ -158,6 +160,7 @@ export type Database = {
           pricing_at_site?: boolean | null
           recurrence_frequency?: string | null
           recurrence_until?: string | null
+          slug?: string
           source?: Database["public"]["Enums"]["event_source"] | null
           source_id?: string | null
           source_url?: string | null

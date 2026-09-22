@@ -48,7 +48,7 @@ function useSimilarEvents({ eventId, categoryIds, venueId }: SimilarEventsProps)
 
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, image_url, start_time, is_free, venue:venues(name), event_categories(category:categories(id, name, icon, color))")
+        .select("id, slug, title, image_url, start_time, is_free, venue:venues(name), event_categories(category:categories(id, name, icon, color))")
         .in("id", allIds.slice(0, 20))
         .eq("status", "approved")
         .gte("start_time", new Date().toISOString())
@@ -123,7 +123,7 @@ export function SimilarEvents({ eventId, categoryIds, venueId }: SimilarEventsPr
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.06 }}
             className="flex-shrink-0 w-56 snap-start"
-            onClick={() => { if (!hasDragged.current) navigate(`/events/${event.id}`); }}
+            onClick={() => { if (!hasDragged.current) navigate(`/events/${event.slug || event.id}`); }}
           >
             <div className="rounded-xl overflow-hidden cursor-pointer group border border-border bg-card hover:shadow-md transition-all duration-200">
               <div className="relative h-28 overflow-hidden">

@@ -278,6 +278,7 @@ const Index = () => {
               >
                 <EventCard
                   id={event.id}
+                  slug={event.slug}
                   title={event.title}
                   description={event.description || undefined}
                   imageUrl={event.image_url || undefined}

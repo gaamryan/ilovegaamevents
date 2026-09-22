@@ -1,12 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { isUuid } from "@/lib/utils";
 import type { Event } from "./useEvents";
 
-export function useSingleEvent(eventId: string | undefined) {
+/**
+ * Looks an event up by its public slug (the normal case, e.g. from
+ * /events/:slug) or by its raw id (legacy links, and Admin's ?edit=<id>
+ * deep link) — whichever `slugOrId` looks like.
+ */
+export function useSingleEvent(slugOrId: string | undefined) {
   return useQuery({
-    queryKey: ["event", eventId],
+    queryKey: ["event", slugOrId],
     queryFn: async () => {
-      if (!eventId) throw new Error("Event ID is required");
+      if (!slugOrId) throw new Error("Event slug or ID is required");
 
       const { data, error } = await supabase
         .from("events")
@@ -18,7 +24,7 @@ export function useSingleEvent(eventId: string | undefined) {
             category:categories(id, name, slug, icon, color)
           )
         `)
-        .eq("id", eventId)
+        .eq(isUuid(slugOrId) ? "id" : "slug", slugOrId)
         .maybeSingle();
 
       if (error) throw error;
@@ -26,6 +32,6 @@ export function useSingleEvent(eventId: string | undefined) {
 
       return data as unknown as Event;
     },
-    enabled: !!eventId,
+    enabled: !!slugOrId,
   });
 }

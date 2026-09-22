@@ -17,7 +17,7 @@ function useHappeningNowEvents() {
       const now = new Date().toISOString();
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, image_url, start_time, end_time, is_free, venue:venues(name), event_categories(category:categories(id, name, icon, color))")
+        .select("id, slug, title, image_url, start_time, end_time, is_free, venue:venues(name), event_categories(category:categories(id, name, icon, color))")
         .eq("status", "approved")
         .lte("start_time", now)
         .gte("end_time", now)
@@ -109,7 +109,7 @@ export function HappeningNow() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.08 }}
               className="flex-shrink-0 w-64 snap-start"
-              onClick={() => { if (!hasDragged.current) navigate(`/events/${event.id}`); }}
+              onClick={() => { if (!hasDragged.current) navigate(`/events/${event.slug || event.id}`); }}
             >
               <div className="relative rounded-xl overflow-hidden cursor-pointer group border border-destructive/20 bg-card hover:border-destructive/40 transition-all duration-200 shadow-sm hover:shadow-md">
                 {/* Image */}

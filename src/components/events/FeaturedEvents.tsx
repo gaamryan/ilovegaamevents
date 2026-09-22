@@ -165,7 +165,7 @@ export function FeaturedEvents() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.12, type: "spring", stiffness: 200 }}
               className="flex-shrink-0 w-80 snap-start"
-              onClick={() => { if (!hasDragged.current) navigate(`/events/${event.id}`); }}
+              onClick={() => { if (!hasDragged.current) navigate(`/events/${event.slug || event.id}`); }}
             >
               <div className="relative rounded-2xl overflow-hidden cursor-pointer group shadow-lg hover:shadow-xl transition-shadow duration-300 bg-card border border-border/50">
                 {/* Image */}

@@ -7,6 +7,8 @@ import { LazyImage } from "@/components/ui/LazyImage";
 
 interface EventCardProps {
   id: string;
+  /** Preferred link target — falls back to `id` when not provided (e.g. legacy data without a slug yet). */
+  slug?: string | null;
   title: string;
   description?: string;
   imageUrl?: string;
@@ -27,6 +29,7 @@ interface EventCardProps {
 
 export function EventCard({
   id,
+  slug,
   title,
   description,
   imageUrl,
@@ -55,12 +58,13 @@ export function EventCard({
   };
 
   const price = getPriceDisplay();
+  const linkTarget = slug || id;
 
   const handleClick = () => {
     if (onClick) {
       onClick(id);
     } else {
-      navigate(`/events/${id}`);
+      navigate(`/events/${linkTarget}`);
     }
   };
 
@@ -87,7 +91,7 @@ export function EventCard({
               e.stopPropagation();
               shareEvent({
                 title,
-                url: `${window.location.origin}/events/${id}`,
+                url: `${window.location.origin}/events/${linkTarget}`,
               });
             }}
             className="w-9 h-9 rounded-full bg-card/90 backdrop-blur-sm flex items-center justify-center transition-all hover:scale-110 active:scale-95"

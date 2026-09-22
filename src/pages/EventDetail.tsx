@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
@@ -36,10 +37,18 @@ const ensureUrl = (url: string | null | undefined): string | null => {
 };
 
 const EventDetail = () => {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { isAdmin } = useIsAdmin();
-  const { data: event, isLoading, error } = useSingleEvent(id);
+  const { data: event, isLoading, error } = useSingleEvent(slug);
+
+  // Legacy links used the raw event id; once we know the real slug, settle
+  // on the canonical URL so there's one indexable address per event.
+  useEffect(() => {
+    if (event?.slug && event.slug !== slug) {
+      navigate(`/events/${event.slug}`, { replace: true });
+    }
+  }, [event?.slug, slug, navigate]);
 
   const handleShare = () => {
     if (!event) return;
@@ -129,7 +138,7 @@ const EventDetail = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => navigate(`/admin?edit=${id}`)}
+                onClick={() => event && navigate(`/admin?edit=${event.id}`)}
                 className="rounded-full text-primary"
                 title="Edit Event"
               >

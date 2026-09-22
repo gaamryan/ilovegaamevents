@@ -48,7 +48,7 @@ const App = () => (
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/events/:id" element={<EventDetail />} />
+            <Route path="/events/:slug" element={<EventDetail />} />
             <Route path="/categories" element={<Categories />} />
             <Route path="/admin" element={<Admin />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
