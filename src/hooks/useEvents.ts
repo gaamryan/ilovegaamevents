@@ -227,6 +227,7 @@ export function useFeaturedEvents() {
   return useQuery({
     queryKey: ["events", "featured"],
     queryFn: async () => {
+      const now = new Date().toISOString();
       const { data, error } = await supabase
         .from("events")
         .select(`
@@ -239,12 +240,69 @@ export function useFeaturedEvents() {
         `)
         .eq("status", "approved")
         .eq("featured", true)
-        .gte("start_time", new Date().toISOString())
+        // Not "passed": still running (end_time in the future) if it has an
+        // end_time, otherwise it just hasn't started yet.
+        .or(`end_time.gte.${now},and(end_time.is.null,start_time.gte.${now})`)
+        .order("featured_order", { ascending: true, nullsFirst: false })
         .order("start_time", { ascending: true })
         .limit(3);
 
       if (error) throw error;
       return data as Event[];
+    },
+  });
+}
+
+export interface FeaturedOrderEvent {
+  id: string;
+  title: string;
+  image_url: string | null;
+  start_time: string;
+  end_time: string | null;
+  featured_order: number | null;
+}
+
+// Admin: every currently-featured, not-yet-passed event, for the "Featured
+// Order" reorder panel — a superset of what useFeaturedEvents() actually
+// shows (that one caps at 3), so admins can see what's queued up next.
+export function useFeaturedEventsForOrdering() {
+  return useQuery({
+    queryKey: ["events", "featured", "admin"],
+    queryFn: async () => {
+      const now = new Date().toISOString();
+      const { data, error } = await supabase
+        .from("events")
+        .select("id, title, image_url, start_time, end_time, featured_order")
+        .eq("status", "approved")
+        .eq("featured", true)
+        .or(`end_time.gte.${now},and(end_time.is.null,start_time.gte.${now})`)
+        .order("featured_order", { ascending: true, nullsFirst: false })
+        .order("start_time", { ascending: true });
+
+      if (error) throw error;
+      return data as FeaturedOrderEvent[];
+    },
+  });
+}
+
+export function useReorderFeaturedEvents() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (orderedIds: string[]) => {
+      const results = await Promise.all(
+        orderedIds.map((id, index) =>
+          supabase.from("events").update({ featured_order: index }).eq("id", id)
+        )
+      );
+      const failed = results.find((r) => r.error);
+      if (failed?.error) throw failed.error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events", "featured"] });
+    },
+    onError: (error) => {
+      console.error("Failed to reorder featured events:", error);
     },
   });
 }

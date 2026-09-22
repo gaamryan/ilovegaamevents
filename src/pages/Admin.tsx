@@ -22,6 +22,7 @@ import { VenueCombobox } from "@/components/admin/VenueCombobox";
 import { SettingsTab } from "@/components/admin/SettingsTab";
 import { VenuesHostsTab } from "@/components/admin/VenuesHostsTab";
 import { DiscoverTab } from "@/components/admin/DiscoverTab";
+import { FeaturedEventsOrder } from "@/components/admin/FeaturedEventsOrder";
 import { StylesTab } from "@/components/admin/StylesTab";
 import { AnalyticsTab } from "@/components/admin/AnalyticsTab";
 import { BulkEditDialog } from "@/components/admin/BulkEditDialog";
@@ -47,8 +48,10 @@ import {
   BarChart3,
   MapPin,
   Sparkles,
+  Star,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -71,11 +74,23 @@ const statusColors: Record<string, string> = {
   draft: "bg-gray-100 text-gray-800",
 };
 
+const ADMIN_TABS: { value: string; label: string; icon: typeof CalendarIcon }[] = [
+  { value: "events", label: "Events", icon: CalendarIcon },
+  { value: "featured", label: "Featured Order", icon: Star },
+  { value: "discover", label: "Discover", icon: Sparkles },
+  { value: "sources", label: "Data Sources", icon: Database },
+  { value: "venues-hosts", label: "Venues & Hosts", icon: MapPin },
+  { value: "settings", label: "Settings", icon: Settings },
+  { value: "styles", label: "Styles", icon: Palette },
+  { value: "analytics", label: "Analytics", icon: BarChart3 },
+];
+
 const Admin = () => {
   const { user, signIn, signOut, loading: authLoading } = useAuth();
   const { isAdmin, loading: adminLoading } = useIsAdmin();
   const queryClient = useQueryClient();
 
+  const [activeTab, setActiveTab] = useState("events");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("approved");
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>(undefined);
   const [searchQuery, setSearchQuery] = useState("");
@@ -277,37 +292,36 @@ const Admin = () => {
           </Button>
         </div>
       </PageHeader>
-      <Tabs defaultValue="events" className="w-full">
-        <div className="px-4 border-b border-border bg-background">
-          <TabsList className="mb-[-1px] h-12 bg-transparent p-0">
-            <TabsTrigger value="events" className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 font-medium">
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              Events
-            </TabsTrigger>
-            <TabsTrigger value="discover" className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 font-medium">
-              <Sparkles className="mr-2 h-4 w-4" />
-              Discover
-            </TabsTrigger>
-            <TabsTrigger value="sources" className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 font-medium">
-              <Database className="mr-2 h-4 w-4" />
-              Data Sources
-            </TabsTrigger>
-            <TabsTrigger value="venues-hosts" className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 font-medium">
-              <MapPin className="mr-2 h-4 w-4" />
-              Venues & Hosts
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 font-medium">
-              <Settings className="mr-2 h-4 w-4" />
-              Settings
-            </TabsTrigger>
-            <TabsTrigger value="styles" className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 font-medium">
-              <Palette className="mr-2 h-4 w-4" />
-              Styles
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 font-medium">
-              <BarChart3 className="mr-2 h-4 w-4" />
-              Analytics
-            </TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="px-4 border-b border-border bg-background py-2 md:py-0">
+          {/* Mobile: a single dropdown instead of a cramped tab row */}
+          <Select value={activeTab} onValueChange={setActiveTab}>
+            <SelectTrigger className="md:hidden">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ADMIN_TABS.map((tab) => (
+                <SelectItem key={tab.value} value={tab.value}>
+                  <span className="flex items-center gap-2">
+                    <tab.icon className="h-4 w-4" />
+                    {tab.label}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <TabsList className="hidden md:flex mb-[-1px] h-12 bg-transparent p-0">
+            {ADMIN_TABS.map((tab) => (
+              <TabsTrigger
+                key={tab.value}
+                value={tab.value}
+                className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 font-medium"
+              >
+                <tab.icon className="mr-2 h-4 w-4" />
+                {tab.label}
+              </TabsTrigger>
+            ))}
           </TabsList>
         </div>
 
@@ -455,6 +469,10 @@ const Admin = () => {
               </div>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="featured" className="p-0 m-0">
+          <FeaturedEventsOrder />
         </TabsContent>
 
         <TabsContent value="discover" className="p-0 m-0">

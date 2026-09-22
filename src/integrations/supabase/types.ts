@@ -86,6 +86,7 @@ export type Database = {
           description: string | null
           end_time: string | null
           featured: boolean | null
+          featured_order: number | null
           host_id: string | null
           id: string
           image_optimized: boolean | null
@@ -117,6 +118,7 @@ export type Database = {
           description?: string | null
           end_time?: string | null
           featured?: boolean | null
+          featured_order?: number | null
           host_id?: string | null
           id?: string
           image_optimized?: boolean | null
@@ -148,6 +150,7 @@ export type Database = {
           description?: string | null
           end_time?: string | null
           featured?: boolean | null
+          featured_order?: number | null
           host_id?: string | null
           id?: string
           image_optimized?: boolean | null
