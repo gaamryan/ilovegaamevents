@@ -17,6 +17,23 @@ window.addEventListener("vite:preloadError", () => {
   }
 });
 
+// Deeper version of the same problem: the service worker's navigation
+// route serves its OWN cached index.html on every load, so a tab can load
+// that stale shell — referencing JS that no longer exists on the server —
+// before the browser's background check installs the current service
+// worker. skipWaiting()/clientsClaim() (baked into vite-plugin-pwa's
+// autoUpdate mode) make that new worker take over immediately once it's
+// ready; reload right when that handoff happens instead of leaving the
+// tab running on the mismatched assets until something breaks.
+if ("serviceWorker" in navigator) {
+  let reloadedForNewController = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (reloadedForNewController) return;
+    reloadedForNewController = true;
+    window.location.reload();
+  });
+}
+
 createRoot(document.getElementById("root")!).render(
   <ErrorBoundary>
     <App />
