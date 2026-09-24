@@ -21,6 +21,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { resolveMeasurementId, trackSearch } from "@/lib/analytics";
 
 const Index = () => {
   const isMobile = useIsMobile();
@@ -52,6 +53,15 @@ const Index = () => {
     const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery), 350);
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  // Report actual searches (post-debounce, so we don't log every keystroke)
+  // to GA4 so search terms show up in Site Search / Explorations reports.
+  const measurementId = resolveMeasurementId(settings?.ga_measurement_id);
+  useEffect(() => {
+    const term = debouncedSearchQuery.trim();
+    if (!term) return;
+    trackSearch(measurementId, term);
+  }, [debouncedSearchQuery, measurementId]);
 
   // Read category from URL query param on mount
   useEffect(() => {
