@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.import-event]
 verify_jwt = false
+
+[functions.ga4-report]
+verify_jwt = false
