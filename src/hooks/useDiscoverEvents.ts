@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { generateEventSlug } from "@/lib/utils";
 
 export type DiscoverSource = "eventbrite" | "meetup" | "facebook" | "web";
 
