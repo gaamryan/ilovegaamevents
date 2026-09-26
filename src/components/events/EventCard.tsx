@@ -21,6 +21,7 @@ interface EventCardProps {
   }[];
   isFree?: boolean;
   pricingAtSite?: boolean;
+  isLivestream?: boolean;
   priceMin?: number;
   priceMax?: number;
   isRecurring?: boolean;
@@ -38,6 +39,7 @@ export function EventCard({
   categories,
   isFree,
   pricingAtSite,
+  isLivestream,
   priceMin,
   priceMax,
   isRecurring,
@@ -49,7 +51,8 @@ export function EventCard({
 
   const getPriceDisplay = () => {
     if (isFree) return "Free";
-    if (pricingAtSite) return "See event site";
+    if (pricingAtSite) return isLivestream ? "Go Watch" : "See event site";
+    if (isLivestream) return "Go Watch";
     if (priceMin && priceMax && priceMin !== priceMax) {
       return `$${priceMin} - $${priceMax}`;
     }
