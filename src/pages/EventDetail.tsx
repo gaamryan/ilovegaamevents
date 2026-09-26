@@ -362,7 +362,11 @@ const EventDetail = () => {
         const ticketLink = ensureUrl(event.ticket_url);
         const sourceLink = ensureUrl(event.source_url);
         const ctaUrl = ticketLink || sourceLink;
-        const ctaLabel = ticketLink ? "Get Tickets" : "Visit Original Listing";
+        const ctaLabel = event.is_livestream
+          ? "Go Watch"
+          : ticketLink
+            ? "Get Tickets"
+            : "Visit Original Listing";
         const CtaIcon = ticketLink ? Ticket : ExternalLink;
 
         return (
