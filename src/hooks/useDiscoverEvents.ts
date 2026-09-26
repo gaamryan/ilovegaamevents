@@ -95,6 +95,7 @@ export async function importDiscoveredAsDraft(event: DiscoveredEvent): Promise<{
     .from("events")
     .insert({
       title: event.title,
+      slug: generateEventSlug(event.title),
       description: event.description || null,
       start_time: event.start_time || new Date().toISOString(),
       end_time: event.end_time || null,
