@@ -253,7 +253,7 @@ export const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(funct
 
         {value ? (
           <>
-            <div className="relative aspect-[16/10] w-full overflow-hidden rounded-lg border bg-muted">
+            <div className="relative aspect-[16/10] w-full max-w-sm mx-auto overflow-hidden rounded-lg border bg-muted">
               <Cropper
                 image={value}
                 crop={crop}
@@ -317,7 +317,7 @@ export const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(funct
           <div
             {...getRootProps()}
             className={cn(
-              "relative flex aspect-[16/10] w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border-2 border-dashed bg-muted/50 transition-colors hover:bg-muted/80",
+              "relative flex aspect-[16/10] w-full max-w-sm mx-auto cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border-2 border-dashed bg-muted/50 transition-colors hover:bg-muted/80",
               isDragActive && "border-primary bg-primary/10",
               disabled && "cursor-not-allowed opacity-50",
             )}
