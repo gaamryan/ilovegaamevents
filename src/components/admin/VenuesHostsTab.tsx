@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ImageUpload } from "@/components/admin/ImageUpload";
 import { toast } from "sonner";
 import {
   Search,
@@ -591,11 +592,13 @@ function EditHostDialog({
             value={form.website_url || ""}
             onChange={(e) => setForm({ ...form, website_url: e.target.value || null })}
           />
-          <Input
-            placeholder="Logo URL"
-            value={form.logo_url || ""}
-            onChange={(e) => setForm({ ...form, logo_url: e.target.value || null })}
-          />
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Logo</label>
+            <ImageUpload
+              value={form.logo_url}
+              onChange={(url) => setForm({ ...form, logo_url: url || null })}
+            />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
