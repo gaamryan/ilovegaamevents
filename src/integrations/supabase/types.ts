@@ -92,6 +92,7 @@ export type Database = {
           image_optimized: boolean | null
           image_url: string | null
           is_free: boolean | null
+          is_livestream: boolean | null
           is_recurring: boolean | null
           parent_event_id: string | null
           price_max: number | null
@@ -124,6 +125,7 @@ export type Database = {
           image_optimized?: boolean | null
           image_url?: string | null
           is_free?: boolean | null
+          is_livestream?: boolean | null
           is_recurring?: boolean | null
           parent_event_id?: string | null
           price_max?: number | null
@@ -131,7 +133,7 @@ export type Database = {
           pricing_at_site?: boolean | null
           recurrence_frequency?: string | null
           recurrence_until?: string | null
-          slug?: string
+          slug: string
           source?: Database["public"]["Enums"]["event_source"] | null
           source_id?: string | null
           source_url?: string | null
@@ -156,6 +158,7 @@ export type Database = {
           image_optimized?: boolean | null
           image_url?: string | null
           is_free?: boolean | null
+          is_livestream?: boolean | null
           is_recurring?: boolean | null
           parent_event_id?: string | null
           price_max?: number | null
@@ -436,6 +439,7 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      slugify: { Args: { input: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

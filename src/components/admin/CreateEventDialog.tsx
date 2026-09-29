@@ -22,7 +22,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCategories } from "@/hooks/useCategories";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, generateEventSlug } from "@/lib/utils";
 
 const eventSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
@@ -140,6 +140,7 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
       // Create parent event
       const { data: parentEvent, error: eventError } = await supabase.from("events").insert({
         title: data.title,
+        slug: generateEventSlug(data.title),
         description: data.description || null,
         start_time: startDateTime.toISOString(),
         end_time: endDateTime?.toISOString() || null,
@@ -185,6 +186,7 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
           const instanceEnd = eventDuration ? new Date(currentStart.getTime() + eventDuration) : null;
           instances.push({
             title: data.title,
+            slug: generateEventSlug(data.title),
             description: data.description || null,
             start_time: currentStart.toISOString(),
             end_time: instanceEnd?.toISOString() || null,

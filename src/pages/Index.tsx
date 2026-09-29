@@ -297,6 +297,7 @@ const Index = () => {
                   categories={event.event_categories?.map(ec => ec.category)}
                   isFree={event.is_free || false}
                   pricingAtSite={event.pricing_at_site || false}
+                  isLivestream={event.is_livestream || false}
                   priceMin={event.price_min || undefined}
                   priceMax={event.price_max || undefined}
                   isRecurring={event.is_recurring || false}

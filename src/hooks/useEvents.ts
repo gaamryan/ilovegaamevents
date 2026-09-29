@@ -5,7 +5,7 @@ import type { SortOption } from "@/components/events/SortSelect";
 import { startOfDay } from "date-fns";
 
 // Minimal column selections to reduce data transfer
-const EVENT_LIST_COLUMNS = `id, slug, title, description, start_time, end_time, image_url, ticket_url, price_min, price_max, is_free, status, source, source_url, featured, is_recurring, recurrence_frequency, created_at, pricing_at_site`;
+const EVENT_LIST_COLUMNS = `id, slug, title, description, start_time, end_time, image_url, ticket_url, price_min, price_max, is_free, status, source, source_url, featured, is_recurring, recurrence_frequency, created_at, pricing_at_site, is_livestream`;
 const VENUE_LIST_COLUMNS = `id, name, city, latitude, longitude`;
 const HOST_LIST_COLUMNS = `id, name`;
 const CATEGORY_COLUMNS = `id, name, slug, icon, color`;
@@ -45,6 +45,7 @@ export interface Event {
   price_max: number | null;
   is_free: boolean | null;
   pricing_at_site: boolean | null;
+  is_livestream: boolean | null;
   status: "draft" | "pending" | "approved" | "rejected";
   source: "manual" | "eventbrite" | "meetup" | "ticketspice" | "facebook";
   source_url: string | null;
@@ -308,7 +309,7 @@ export function useReorderFeaturedEvents() {
 }
 
 // Admin: only select columns needed for the list view + edit drawer
-const ADMIN_EVENT_COLUMNS = `id, slug, title, description, start_time, end_time, image_url, ticket_url, price_min, price_max, is_free, status, source, source_url, source_id, featured, is_recurring, recurrence_frequency, recurrence_until, parent_event_id, created_at, pricing_at_site, category_id, venue_id, host_id`;
+const ADMIN_EVENT_COLUMNS = `id, slug, title, description, start_time, end_time, image_url, ticket_url, price_min, price_max, is_free, status, source, source_url, source_id, featured, is_recurring, recurrence_frequency, recurrence_until, parent_event_id, created_at, pricing_at_site, is_livestream, category_id, venue_id, host_id`;
 
 export function useAllEvents(filters?: {
   status?: "draft" | "pending" | "approved" | "rejected";
