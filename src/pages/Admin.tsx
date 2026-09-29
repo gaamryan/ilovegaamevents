@@ -714,6 +714,15 @@ const Admin = () => {
                   <label htmlFor="is_featured" className="text-sm font-medium cursor-pointer">⭐ Featured event</label>
                 </div>
 
+                <div className="flex items-center gap-2 py-2">
+                  <Checkbox
+                    id="is_livestream"
+                    checked={!!editingEvent.is_livestream}
+                    onCheckedChange={(checked) => setEditingEvent({ ...editingEvent, is_livestream: !!checked })}
+                  />
+                  <label htmlFor="is_livestream" className="text-sm font-medium cursor-pointer">🔴 Livestream (shows "Go Watch" instead of a ticket link)</label>
+                </div>
+
                 {/* Recurring controls */}
                 <div className="flex items-center gap-2 py-2">
                   <Checkbox
@@ -962,6 +971,7 @@ const Admin = () => {
                       price_max: editingEvent.price_max,
                       is_free: editingEvent.is_free,
                       pricing_at_site: editingEvent.pricing_at_site || false,
+                      is_livestream: editingEvent.is_livestream || false,
                       ticket_url: editingEvent.ticket_url,
                       featured: editingEvent.featured,
                       is_recurring: editingEvent.is_recurring || false,

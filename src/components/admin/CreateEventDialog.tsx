@@ -41,6 +41,7 @@ const eventSchema = z.object({
   source_url: z.string().url("Must be a valid URL").optional().or(z.literal("")),
   is_free: z.boolean().default(false),
   pricing_at_site: z.boolean().default(false),
+  is_livestream: z.boolean().default(false),
   featured: z.boolean().default(false),
   price_min: z.coerce.number().min(0).optional(),
   price_max: z.coerce.number().min(0).optional(),
@@ -78,6 +79,7 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
       ticket_url: "",
       source_url: "",
       is_free: false,
+      is_livestream: false,
       featured: false,
       is_recurring: false,
       recurrence_frequency: "",
@@ -152,6 +154,7 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
         source_url: data.source_url || null,
         is_free: data.is_free,
         pricing_at_site: data.pricing_at_site,
+        is_livestream: data.is_livestream,
         featured: data.featured,
         price_min: (data.is_free || data.pricing_at_site) ? null : (data.price_min || null),
         price_max: (data.is_free || data.pricing_at_site) ? null : (data.price_max || null),
@@ -197,6 +200,7 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
             source_url: data.source_url || null,
             is_free: data.is_free,
             pricing_at_site: data.pricing_at_site,
+            is_livestream: data.is_livestream,
             featured: false,
             price_min: (data.is_free || data.pricing_at_site) ? null : (data.price_min || null),
             price_max: (data.is_free || data.pricing_at_site) ? null : (data.price_max || null),
@@ -467,6 +471,22 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
                         field.onChange(checked);
                         if (checked) form.setValue("is_free", false);
                       }} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="is_livestream"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                    <div className="space-y-0.5">
+                      <FormLabel>🔴 Livestream</FormLabel>
+                      <p className="text-xs text-muted-foreground">Shows "Go Watch" instead of a ticket link</p>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
                     </FormControl>
                   </FormItem>
                 )}
