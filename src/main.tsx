@@ -32,6 +32,22 @@ if ("serviceWorker" in navigator) {
     reloadedForNewController = true;
     window.location.reload();
   });
+
+  window.addEventListener("load", () => {
+    // updateViaCache: "none" stops the browser from checking for a new
+    // service worker using its own HTTP-cached copy of sw.js — without
+    // it, a host that caches JS aggressively can make a returning visitor's
+    // browser believe nothing changed for up to 24h, so the reload-on-update
+    // logic above never even gets a chance to fire.
+    navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" }).then((registration) => {
+      // Covers a tab left open across a deploy: browsers normally only
+      // recheck for updates on navigation, so a long-lived tab that never
+      // reloads could otherwise sit on a stale version indefinitely.
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") registration.update();
+      });
+    });
+  });
 }
 
 createRoot(document.getElementById("root")!).render(

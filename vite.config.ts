@@ -18,6 +18,11 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Registered manually in main.tsx with updateViaCache: 'none' — the
+      // auto-injected script doesn't expose that option, and without it the
+      // browser can keep serving a stale cached sw.js past its own update
+      // check, so returning visitors never detect a new deploy at all.
+      injectRegister: false,
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
         name: 'EventHub Connect',
