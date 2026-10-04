@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
 
   const { data: event, error } = await supabase
     .from("events")
-    .select("title, description, image_url, start_time")
+    .select("slug, title, description, image_url, start_time")
     .eq("id", eventId)
     .maybeSingle();
 
@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
     .substring(0, 200);
 
   const siteUrl = Deno.env.get("SITE_URL") || "https://ilovegaam.com";
-  const eventUrl = `${siteUrl}/events/${eventId}`;
+  const eventUrl = `${siteUrl}/events/${event.slug || eventId}`;
 
   const html = `<!DOCTYPE html>
 <html lang="en">

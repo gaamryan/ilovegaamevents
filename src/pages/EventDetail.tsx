@@ -25,6 +25,7 @@ import { useIsAdmin } from "@/hooks/useAuth";
 import { shareEvent } from "@/lib/share";
 import { SimilarEvents } from "@/components/events/SimilarEvents";
 import { LazyImage } from "@/components/ui/LazyImage";
+import { SITE_URL, eventPath, buildEventJsonLd, serializeJsonLd } from "@/lib/seo";
 
 const ensureUrl = (url: string | null | undefined): string | null => {
   if (!url) return null;
@@ -172,12 +173,14 @@ const EventDetail = () => {
               <meta property="og:title" content={event.title} />
               <meta property="og:description" content={event.description?.replace(/<[^>]*>?/gm, "").substring(0, 160) || event.title} />
               <meta property="og:type" content="event" />
-              <meta property="og:url" content={window.location.href} />
+              <link rel="canonical" href={`${SITE_URL}${eventPath(event)}`} />
+              <meta property="og:url" content={`${SITE_URL}${eventPath(event)}`} />
               {event.image_url && <meta property="og:image" content={event.image_url} />}
               <meta name="twitter:card" content="summary_large_image" />
               <meta name="twitter:title" content={event.title} />
               <meta name="twitter:description" content={event.description?.replace(/<[^>]*>?/gm, "").substring(0, 160) || event.title} />
               {event.image_url && <meta name="twitter:image" content={event.image_url} />}
+              <script type="application/ld+json">{serializeJsonLd(buildEventJsonLd(event))}</script>
             </Helmet>
             {/* Hero Image */}
             <div className="relative aspect-[16/10]">

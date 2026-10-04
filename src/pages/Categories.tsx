@@ -5,6 +5,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/ui/header";
 import { useCategories } from "@/hooks/useCategories";
 import { Bell, BellOff } from "lucide-react";
+import { Helmet } from "react-helmet-async";
+import { SITE_URL, SITE_NAME } from "@/lib/seo";
 
 const Categories = () => {
   const { data: categories, isLoading } = useCategories();
@@ -25,6 +27,10 @@ const Categories = () => {
 
   return (
     <AppLayout>
+      <Helmet>
+        <title>Categories | {SITE_NAME}</title>
+        <link rel="canonical" href={`${SITE_URL}/categories`} />
+      </Helmet>
       <PageHeader title="Categories" subtitle="Browse by interest" />
 
       <div className="p-4">

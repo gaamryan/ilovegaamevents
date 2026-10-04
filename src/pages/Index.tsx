@@ -22,6 +22,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { resolveMeasurementId, trackSearch } from "@/lib/analytics";
+import { Helmet } from "react-helmet-async";
+import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from "@/lib/seo";
 
 const Index = () => {
   const isMobile = useIsMobile();
@@ -179,6 +181,11 @@ const Index = () => {
 
   return (
     <AppLayout>
+      <Helmet>
+        <title>{SITE_NAME} | Games, Art & Music Events in Jacksonville</title>
+        <meta name="description" content={SITE_DESCRIPTION} />
+        <link rel="canonical" href={`${SITE_URL}/`} />
+      </Helmet>
       <PageHeader
         title="ILoveGAAM"
         subtitle="Events for Gamers, Artists, Music Lovers, Creators & Nerds in Jacksonville and the Southeast"
