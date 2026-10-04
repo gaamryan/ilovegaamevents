@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.sitemap]
 verify_jwt = false
+
+[functions.prerender]
+verify_jwt = false
