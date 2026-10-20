@@ -8,6 +8,13 @@
       "when": 1792514713095,
       "tag": "0000_category_descriptions_keywords_autocat",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792514853952,
+      "tag": "0001_auto_categorize_event_admin_guard",
+      "breakpoints": true
     }
   ]
 }
