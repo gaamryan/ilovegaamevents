@@ -49,7 +49,11 @@ import {
   MapPin,
   Sparkles,
   Star,
+  Tags,
 } from "lucide-react";
+import { CategoriesTab } from "@/components/admin/CategoriesTab";
+import { AutoBadge } from "@/components/admin/AutoBadge";
+import { isUncategorized } from "@/lib/categoryHelpers";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
@@ -80,6 +84,7 @@ const ADMIN_TABS: { value: string; label: string; icon: typeof CalendarIcon }[] 
   { value: "discover", label: "Discover", icon: Sparkles },
   { value: "sources", label: "Data Sources", icon: Database },
   { value: "venues-hosts", label: "Venues & Hosts", icon: MapPin },
+  { value: "categories", label: "Categories", icon: Tags },
   { value: "settings", label: "Settings", icon: Settings },
   { value: "styles", label: "Styles", icon: Palette },
   { value: "analytics", label: "Analytics", icon: BarChart3 },
@@ -112,6 +117,8 @@ const Admin = () => {
     source: sourceFilter,
     search: searchQuery || undefined,
   });
+  const [noCategoryOnly, setNoCategoryOnly] = useState(false);
+  const visibleEvents = (events || []).filter((e) => !noCategoryOnly || isUncategorized(e));
 
   const categoriesQuery = useCategories();
 
@@ -168,18 +175,27 @@ const Admin = () => {
   };
 
   const selectAll = () => {
-    if (events) {
-      setSelectedEvents(new Set(events.map((e) => e.id)));
-    }
+    setSelectedEvents(new Set(visibleEvents.map((e) => e.id)));
   };
 
   const clearSelection = () => {
     setSelectedEvents(new Set());
   };
 
+  const warnNoCategory = (n: number) => {
+    toast.warning(
+      n === 1
+        ? "No category set, this event won't appear on category pages."
+        : `No category set on ${n} events, they won't appear on category pages.`
+    );
+  };
+
   const handleBulkApprove = async () => {
     if (selectedEvents.size === 0) return;
-    await updateStatus.mutateAsync({ eventIds: Array.from(selectedEvents), status: "approved" });
+    const ids = Array.from(selectedEvents);
+    await updateStatus.mutateAsync({ eventIds: ids, status: "approved" });
+    const missing = (events || []).filter((e) => selectedEvents.has(e.id) && isUncategorized(e)).length;
+    if (missing > 0) warnNoCategory(missing);
     clearSelection();
   };
 
@@ -355,6 +371,16 @@ const Admin = () => {
                   {status}
                 </button>
               ))}
+              <button
+                onClick={() => setNoCategoryOnly((v) => !v)}
+                aria-pressed={noCategoryOnly}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors",
+                  noCategoryOnly ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
+                )}
+              >
+                No category
+              </button>
             </div>
 
             {/* Bulk Actions */}
@@ -412,17 +438,17 @@ const Admin = () => {
               Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="skeleton h-20 rounded-xl" />
               ))
-            ) : events && events.length > 0 ? (
+            ) : visibleEvents.length > 0 ? (
               <>
                 <div className="flex items-center justify-between mb-2">
                   <button
-                    onClick={selectedEvents.size === events.length ? clearSelection : selectAll}
+                    onClick={selectedEvents.size === visibleEvents.length ? clearSelection : selectAll}
                     className="text-sm text-primary font-medium"
                   >
-                    {selectedEvents.size === events.length ? "Deselect All" : "Select All"}
+                    {selectedEvents.size === visibleEvents.length ? "Deselect All" : "Select All"}
                   </button>
                 </div>
-                {events.map((event) => (
+                {visibleEvents.map((event) => (
                   <motion.div
                     key={event.id}
                     initial={{ opacity: 0 }}
@@ -458,6 +484,18 @@ const Admin = () => {
                         {format(new Date(event.start_time), "MMM d, yyyy")}
                         {event.venue?.name && ` • ${event.venue.name}`}
                       </p>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                        {isUncategorized(event) ? (
+                          <span className="text-[11px] text-muted-foreground italic">No category</span>
+                        ) : (
+                          event.event_categories.map((ec) => (
+                            <span key={ec.category.id} className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
+                              {ec.category.icon} {ec.category.name}
+                              {ec.auto_assigned && <AutoBadge />}
+                            </span>
+                          ))
+                        )}
+                      </div>
                     </div>
                     <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                   </motion.div>
@@ -551,6 +589,7 @@ const Admin = () => {
                         className="capitalize"
                         onClick={() => {
                           updateStatus.mutate({ eventIds: [editingEvent.id], status });
+                          if (status === "approved" && isUncategorized(editingEvent)) warnNoCategory(1);
                           setEditingEvent({ ...editingEvent, status });
                         }}
                       >
@@ -885,6 +924,7 @@ const Admin = () => {
                         >
                           <span>{cat.icon}</span>
                           {cat.name}
+                          {editingEvent.event_categories?.some(ec => ec.category.id === cat.id && ec.auto_assigned) && <AutoBadge />}
                         </label>
                       </div>
                     ))}
