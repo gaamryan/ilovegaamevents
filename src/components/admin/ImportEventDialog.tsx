@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { fetchCategorySuggestions } from "@/hooks/useCategorySuggestions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,8 @@ interface ScrapedEvent {
   price_max?: number | null;
   _warning?: string;
   selectedCategoryIds?: string[];
+  categoriesTouched?: boolean;
+  categoriesSuggested?: boolean;
   city?: string | null;
   state?: string | null;
   postal_code?: string | null;
@@ -180,9 +183,38 @@ Cover Image : please copy and paste the full url path to the cover image`;
       const updated = current.includes(categoryId)
         ? current.filter(c => c !== categoryId)
         : [...current, categoryId];
-      return { ...e, selectedCategoryIds: updated };
+      return { ...e, selectedCategoryIds: updated, categoriesTouched: true, categoriesSuggested: false };
     }));
   };
+
+  // Pre-select keyword suggestions (debounced) until the admin edits an event's categories.
+  const suggestionKeys = useRef<Record<string, string>>({});
+  const suggestionSignature = previewEvents
+    .filter((e) => e.id && !e.categoriesTouched)
+    .map((e) => `${e.id}|${e.title}|${e.venue?.name || e.location || ""}|${e.organizer || ""}`)
+    .join("\n");
+  useEffect(() => {
+    if (!suggestionSignature) return;
+    const timer = setTimeout(async () => {
+      const pending = previewEvents.filter((e) => {
+        if (!e.id || e.categoriesTouched) return false;
+        const key = `${e.title}|${e.venue?.name || e.location || ""}|${e.organizer || ""}`;
+        if (suggestionKeys.current[e.id] === key) return false;
+        suggestionKeys.current[e.id] = key;
+        return true;
+      });
+      for (const ev of pending) {
+        const res = await fetchCategorySuggestions(ev.title, ev.venue?.name || ev.location, ev.organizer);
+        setPreviewEvents((prev) => prev.map((e) =>
+          e.id === ev.id && !e.categoriesTouched
+            ? { ...e, selectedCategoryIds: res.map((s) => s.category_id), categoriesSuggested: res.length > 0 }
+            : e
+        ));
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suggestionSignature]);
 
   const handleCopyEvent = (event: ScrapedEvent) => {
     const details = getFormattedEventString(event);
@@ -429,16 +461,28 @@ full url to cover image: ${event.image_url || "TBD"}`;
       // Insert event_categories links
       if (insertedEvents && eventCategoryMap.length > 0) {
         const categoryLinks: { event_id: string; category_id: string }[] = [];
+        const linkedEventIds: string[] = [];
         for (const mapping of eventCategoryMap) {
           const eventId = insertedEvents[mapping.eventIndex]?.id;
           if (eventId) {
+            linkedEventIds.push(eventId);
             for (const catId of mapping.categoryIds) {
               categoryLinks.push({ event_id: eventId, category_id: catId });
             }
           }
         }
         if (categoryLinks.length > 0) {
-          const { error: catError } = await supabase.from("event_categories").insert(categoryLinks);
+          // Non-manual imports get keyword categories from a database trigger on insert.
+          // The admin's explicit selection wins: drop those auto rows, then save what's shown.
+          const { error: clearError } = await supabase
+            .from("event_categories")
+            .delete()
+            .in("event_id", linkedEventIds)
+            .eq("auto_assigned", true);
+          if (clearError) console.error("Failed to clear auto categories:", clearError);
+          const { error: catError } = await supabase
+            .from("event_categories")
+            .upsert(categoryLinks, { onConflict: "event_id,category_id", ignoreDuplicates: true });
           if (catError) console.error("Failed to link categories:", catError);
         }
       }
