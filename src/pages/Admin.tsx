@@ -521,6 +521,10 @@ const Admin = () => {
           <DataSources />
         </TabsContent>
 
+        <TabsContent value="categories" className="p-0 m-0">
+          <CategoriesTab />
+        </TabsContent>
+
         <TabsContent value="venues-hosts" className="p-0 m-0">
           <VenuesHostsTab />
         </TabsContent>
