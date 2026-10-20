@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
@@ -267,6 +267,57 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      recurring_event_images: {
+        Row: {
+          created_at: string
+          host_id: string | null
+          id: string
+          image_url: string
+          notes: string | null
+          source_url: string | null
+          title: string
+          updated_at: string
+          venue_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          host_id?: string | null
+          id?: string
+          image_url: string
+          notes?: string | null
+          source_url?: string | null
+          title: string
+          updated_at?: string
+          venue_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          host_id?: string | null
+          id?: string
+          image_url?: string
+          notes?: string | null
+          source_url?: string | null
+          title?: string
+          updated_at?: string
+          venue_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_event_images_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_event_images_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       saved_events: {
         Row: {
