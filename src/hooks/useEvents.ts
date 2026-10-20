@@ -107,6 +107,19 @@ export function useApprovedEvents(options: UseApprovedEventsOptions = {}) {
   });
 }
 
+/**
+ * One `or` filter for "starts in the window, or is still running" and,
+ * when searching, "title or description matches" — written out as
+ * or(and(a,b),and(a,c),...) because PostgREST ANDs repeated top-level
+ * `or` params unreliably and this keeps to the shapes already used elsewhere.
+ */
+export function buildFeedOrFilter(windowStart: string, stillRunningFrom: string, escapedSearch?: string): string {
+  const dates = [`start_time.gte.${windowStart}`, `end_time.gte.${stillRunningFrom}`];
+  if (!escapedSearch) return dates.join(",");
+  const text = [`title.ilike.%${escapedSearch}%`, `description.ilike.%${escapedSearch}%`];
+  return dates.flatMap((d) => text.map((t) => `and(${d},${t})`)).join(",");
+}
+
 async function fetchApprovedEvents({
   categoryId,
   categoryIds,
@@ -171,7 +184,7 @@ async function fetchApprovedEvents({
   // markets, festivals): upcoming start, or an end time still in the future.
   const windowStart = (filters?.dateFrom ?? startOfDay(new Date())).toISOString();
   const stillRunningFrom = (filters?.dateFrom ?? new Date()).toISOString();
-  const andConditions = [`or(start_time.gte.${windowStart},end_time.gte.${stillRunningFrom})`];
+  let searchTerm: string | undefined;
   if (filters?.dateTo) {
     const endOfDay = new Date(filters.dateTo);
     endOfDay.setHours(23, 59, 59, 999);
@@ -192,12 +205,9 @@ async function fetchApprovedEvents({
 
   const trimmedSearch = search?.trim();
   if (trimmedSearch && trimmedSearch.length >= 2) {
-    const term = escapeForPostgrestOr(trimmedSearch);
-    andConditions.push(`or(title.ilike.%${term}%,description.ilike.%${term}%)`);
+    searchTerm = escapeForPostgrestOr(trimmedSearch);
   }
-  // A single `or=(and(...))`: supabase-js has no top-level `and`, and this keeps
-  // the date window and search from being read as two competing `or` filters.
-  query = query.or(`and(${andConditions.join(",")})`);
+  query = query.or(buildFeedOrFilter(windowStart, stillRunningFrom, searchTerm));
 
   switch (sortBy) {
     case "date_asc":

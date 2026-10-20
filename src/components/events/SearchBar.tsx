@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, MapPin, Search, X } from "lucide-react";
+import { MapPin, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -21,8 +21,7 @@ interface SearchBarProps {
 
 type Option =
   | { kind: "event"; suggestion: SearchSuggestion }
-  | { kind: "venue"; suggestion: SearchSuggestion }
-  | { kind: "search" };
+  | { kind: "venue"; suggestion: SearchSuggestion };
 
 export function SearchBar({ value, onCommit, onSelectVenue, compact, children }: SearchBarProps) {
   const navigate = useNavigate();
@@ -38,7 +37,7 @@ export function SearchBar({ value, onCommit, onSelectVenue, compact, children }:
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
 
-  const { data: suggestions, isFetching } = useSearchSuggestions(suggestQuery, 0);
+  const { data: suggestions } = useSearchSuggestions(suggestQuery, 0);
 
   const emit = useCallback((raw: string) => {
     const term = raw.trim();
@@ -80,14 +79,11 @@ export function SearchBar({ value, onCommit, onSelectVenue, compact, children }:
 
   const events = (suggestions ?? []).filter((s) => s.type === "event");
   const venues = (suggestions ?? []).filter((s) => s.type === "venue");
-  const showList = open && draft.trim().length >= 2;
-  const options: Option[] = showList
-    ? [
-        ...events.map((suggestion): Option => ({ kind: "event", suggestion })),
-        ...venues.map((suggestion): Option => ({ kind: "venue", suggestion })),
-        { kind: "search" },
-      ]
-    : [];
+  const options: Option[] = [
+    ...events.map((suggestion): Option => ({ kind: "event", suggestion })),
+    ...venues.map((suggestion): Option => ({ kind: "venue", suggestion })),
+  ];
+  const showList = open && draft.trim().length >= 2 && options.length > 0;
 
   const close = () => {
     setOpen(false);
@@ -106,10 +102,15 @@ export function SearchBar({ value, onCommit, onSelectVenue, compact, children }:
       setDraft("");
       setSuggestQuery("");
       onSelectVenue(option.suggestion.label);
-    } else {
-      commitNow(draft);
-      inputRef.current?.blur();
     }
+  };
+
+  // Enter (or the phone keyboard's search key): results already follow the
+  // text, so this just applies it now, dismisses suggestions and the keyboard.
+  const submit = () => {
+    close();
+    commitNow(draft);
+    inputRef.current?.blur();
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -121,8 +122,8 @@ export function SearchBar({ value, onCommit, onSelectVenue, compact, children }:
       setActiveIndex((i) => (i <= 0 ? options.length - 1 : i - 1));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      if (activeIndex >= 0 && options[activeIndex]) choose(options[activeIndex]);
-      else choose({ kind: "search" });
+      if (showList && activeIndex >= 0 && options[activeIndex]) choose(options[activeIndex]);
+      else submit();
     } else if (e.key === "Escape") {
       close();
     }
@@ -186,6 +187,7 @@ export function SearchBar({ value, onCommit, onSelectVenue, compact, children }:
         onFocus={() => setOpen(true)}
         onBlur={close}
         onKeyDown={handleKeyDown}
+        style={{ color: "hsl(var(--input-text-custom))", background: "var(--input-bg-custom)" }}
         className={cn(
           "pl-10 transition-all duration-200 [&::-webkit-search-cancel-button]:appearance-none",
           draft ? "pr-20" : "pr-12",
@@ -198,7 +200,7 @@ export function SearchBar({ value, onCommit, onSelectVenue, compact, children }:
           variant="ghost"
           size="icon"
           aria-label="Clear search"
-          className="absolute right-11 top-1/2 h-8 w-8 -translate-y-1/2 focus-visible:ring-2 focus-visible:ring-ring"
+          className="absolute right-11 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
           onMouseDown={(e) => e.preventDefault()}
           onClick={clear}
         >
@@ -229,12 +231,6 @@ export function SearchBar({ value, onCommit, onSelectVenue, compact, children }:
           )}
           {venues.map((s) =>
             renderRow({ kind: "venue", suggestion: s }, `v-${s.id}`, <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />, s.label, s.subtitle),
-          )}
-          {renderRow(
-            { kind: "search" },
-            "search",
-            isFetching ? <Loader2 className="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" aria-hidden="true" /> : <Search className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />,
-            <>Search for “{draft.trim()}”</>,
           )}
         </ul>
       )}

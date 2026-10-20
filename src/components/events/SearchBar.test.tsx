@@ -46,6 +46,13 @@ describe("SearchBar", () => {
     expect(onCommit).toHaveBeenCalledWith("smash");
   });
 
+  it("has no extra 'Search for' row, only real suggestions", () => {
+    const { input } = setup();
+    fireEvent.change(input, { target: { value: "game" } });
+    expect(screen.queryByText(/Search for/)).toBeNull();
+    expect(screen.getAllByRole("option")).toHaveLength(2);
+  });
+
   it("commits immediately on Enter and closes the suggestions", () => {
     const { input, onCommit } = setup();
     fireEvent.change(input, { target: { value: "game" } });
