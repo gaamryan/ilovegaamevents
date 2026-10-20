@@ -23,22 +23,35 @@ export default defineConfig(({ mode }) => ({
       // browser can keep serving a stale cached sw.js past its own update
       // check, so returning visitors never detect a new deploy at all.
       injectRegister: false,
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
       manifest: {
-        name: 'EventHub Connect',
-        short_name: 'EventHub',
-        description: 'Your local event source of truth',
-        theme_color: '#ffffff',
+        name: 'I Love GAAM Events',
+        short_name: 'ILoveGAAM',
+        description: 'Jacksonville and Northeast Florida events for gamers, artists, music lovers and nerds.',
+        theme_color: '#04859F',
+        background_color: '#F6F8FA',
+        start_url: '/',
+        scope: '/',
+        display: 'standalone',
+        orientation: 'portrait',
         icons: [
           {
             src: 'pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
           },
           {
             src: 'pwa-512x512.png',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: 'pwa-maskable-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
           }
         ]
       },
