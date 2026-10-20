@@ -320,7 +320,10 @@ export function FilterDrawer({
               <div className="space-y-3">
                 <Label className="text-base font-semibold">Categories</Label>
                 <div className="grid grid-cols-2 gap-2">
-                  {categories.map((category) => (
+                  {filterCategoriesWithUpcoming(categories, upcomingCounts, [
+                    ...(localFilters.categoryIds || []),
+                    ...(filters.categoryIds || []),
+                  ]).map((category) => (
                     <label
                       key={category.id}
                       className={cn(

@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useCategoryUpcomingCounts, filterCategoriesWithUpcoming } from "@/hooks/useCategories";
 
 interface Category {
   id: string;
@@ -22,6 +23,8 @@ export function CategoryFilter({
   onSelectCategory,
   isLoading,
 }: CategoryFilterProps) {
+  const { data: counts } = useCategoryUpcomingCounts();
+  categories = filterCategoriesWithUpcoming(categories, counts, [selectedCategory]);
   if (isLoading) {
     return (
       <div className="flex gap-2 overflow-x-auto scrollbar-hide py-2 px-4">
