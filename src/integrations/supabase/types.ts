@@ -18,8 +18,10 @@ export type Database = {
         Row: {
           color: string | null
           created_at: string | null
+          description: string | null
           icon: string | null
           id: string
+          keywords: string[]
           name: string
           slug: string
           sort_order: number | null
@@ -28,8 +30,10 @@ export type Database = {
         Insert: {
           color?: string | null
           created_at?: string | null
+          description?: string | null
           icon?: string | null
           id?: string
+          keywords?: string[]
           name: string
           slug: string
           sort_order?: number | null
@@ -38,8 +42,10 @@ export type Database = {
         Update: {
           color?: string | null
           created_at?: string | null
+          description?: string | null
           icon?: string | null
           id?: string
+          keywords?: string[]
           name?: string
           slug?: string
           sort_order?: number | null
@@ -49,14 +55,17 @@ export type Database = {
       }
       event_categories: {
         Row: {
+          auto_assigned: boolean
           category_id: string
           event_id: string
         }
         Insert: {
+          auto_assigned?: boolean
           category_id: string
           event_id: string
         }
         Update: {
+          auto_assigned?: boolean
           category_id?: string
           event_id?: string
         }
@@ -67,6 +76,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "categories"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_categories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "category_upcoming_counts"
+            referencedColumns: ["category_id"]
           },
           {
             foreignKeyName: "event_categories_event_id_fkey"
@@ -184,6 +200,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "categories"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "category_upcoming_counts"
+            referencedColumns: ["category_id"]
           },
           {
             foreignKeyName: "events_host_id_fkey"
@@ -390,6 +413,13 @@ export type Database = {
             referencedRelation: "categories"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_followed_categories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "category_upcoming_counts"
+            referencedColumns: ["category_id"]
+          },
         ]
       }
       user_roles: {
@@ -463,9 +493,28 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      category_upcoming_counts: {
+        Row: {
+          category_id: string | null
+          upcoming_count: number | null
+        }
+        Insert: {
+          category_id?: string | null
+          upcoming_count?: never
+        }
+        Update: {
+          category_id?: string | null
+          upcoming_count?: never
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      auto_categorize_event: { Args: { _event_id: string }; Returns: number }
+      auto_categorize_uncategorized: {
+        Args: { _upcoming_only?: boolean }
+        Returns: number
+      }
       find_similar_events: {
         Args: {
           _source_url?: string
@@ -488,9 +537,26 @@ export type Database = {
         }
         Returns: boolean
       }
+      preview_auto_categorization: {
+        Args: { _upcoming_only?: boolean }
+        Returns: {
+          event_id: string
+          start_time: string
+          suggested: Json
+          title: string
+        }[]
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       slugify: { Args: { input: string }; Returns: string }
+      suggest_categories: {
+        Args: { _host?: string; _title: string; _venue?: string }
+        Returns: {
+          category_id: string
+          matched_keyword: string
+          slug: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
