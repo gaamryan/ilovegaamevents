@@ -322,6 +322,8 @@ full url to cover image: ${event.image_url || "TBD"}`;
           organizer, google_maps_link, address, location, venue,
           city: eventCity, state: eventState, postal_code: eventZip,
           selectedCategoryIds, featured, pricing_at_site,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          categoriesTouched, categoriesSuggested,
           is_recurring, recurrence_frequency, recurrence_until,
           ...baseEvent
         } = event;
@@ -852,6 +854,9 @@ full url to cover image: ${event.image_url || "TBD"}`;
                           <div className="flex items-center gap-1.5 mb-1.5">
                             <Tag className="w-3 h-3 text-muted-foreground" />
                             <span className="text-xs font-medium text-muted-foreground">Categories</span>
+                            {event.categoriesSuggested && !event.categoriesTouched && (
+                              <span className="text-[11px] text-muted-foreground italic">· Suggested from your title</span>
+                            )}
                           </div>
                           <div className="flex flex-wrap gap-1.5">
                             {categories.map((cat) => {
