@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useNavigationType, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Loader2 } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/ui/header";
 import { EventCard } from "@/components/events/EventCard";
@@ -10,6 +10,8 @@ import { FeaturedEvents } from "@/components/events/FeaturedEvents";
 import { HappeningNow } from "@/components/events/HappeningNow";
 import type { EventFilters } from "@/components/events/FilterDrawer";
 import { SortSelect, type SortOption } from "@/components/events/SortSelect";
+import { SearchBar } from "@/components/events/SearchBar";
+import { parseDiscoverParams, serializeDiscoverState, type DiscoverState } from "@/lib/discoverParams";
 
 // Lazy-load heavy components — defers react-day-picker (106KB) until drawer opens
 const FilterDrawer = lazy(() => import("@/components/events/FilterDrawer").then(m => ({ default: m.FilterDrawer })));
@@ -18,7 +20,6 @@ import { useInfiniteApprovedEvents } from "@/hooks/useEvents";
 import { useCategories } from "@/hooks/useCategories";
 import { useSettings, DEFAULT_FEED_DISPLAY } from "@/hooks/useSettings";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { resolveMeasurementId, trackSearch } from "@/lib/analytics";
@@ -43,37 +44,44 @@ const Index = () => {
     return () => window.removeEventListener("scroll", onScroll);
   }, [isMobile]);
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
-  const [filters, setFilters] = useState<EventFilters>({});
-  const [sortBy, setSortBy] = useState<SortOption>("date_asc");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { data: categories } = useCategories();
+  const location = useLocation();
+  const navigationType = useNavigationType();
 
-  // Debounce the search box before it hits the network — search is applied
-  // server-side (see below) so every keystroke would otherwise fire a query.
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery), 350);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+  // Search, filters and sort live in the URL so a search can be shared,
+  // reloaded and returned to with Back. Defaults stay out of the URL.
+  const { query: searchQuery, filters, sortBy, categoriesPending } = useMemo(
+    () => parseDiscoverParams(searchParams, categories),
+    [searchParams, categories],
+  );
 
-  // Report actual searches (post-debounce, so we don't log every keystroke)
-  // to GA4 so search terms show up in Site Search / Explorations reports.
+  const latestParams = useRef(searchParams);
+  latestParams.current = searchParams;
+  const categoriesRef = useRef(categories);
+  categoriesRef.current = categories;
+
+  // Reads the newest params (not the render's) so two updates in one tick compose.
+  const updateUrl = useCallback(
+    (patch: Partial<DiscoverState>) => {
+      const current = parseDiscoverParams(latestParams.current, categoriesRef.current);
+      const next = serializeDiscoverState({ ...current, ...patch }, latestParams.current, categoriesRef.current);
+      latestParams.current = next;
+      setSearchParams(next, { replace: true });
+    },
+    [setSearchParams],
+  );
+  const setSearchQuery = useCallback((query: string) => updateUrl({ query }), [updateUrl]);
+  const setFilters = useCallback((next: EventFilters) => updateUrl({ filters: next }), [updateUrl]);
+  const setSortBy = useCallback((next: SortOption) => updateUrl({ sortBy: next }), [updateUrl]);
+
+  // Report actual searches (the committed, debounced term — not every
+  // keystroke) to GA4 so search terms show up in Site Search reports.
   const measurementId = resolveMeasurementId(settings?.ga_measurement_id);
   useEffect(() => {
-    const term = debouncedSearchQuery.trim();
-    if (!term) return;
-    trackSearch(measurementId, term);
-  }, [debouncedSearchQuery, measurementId]);
-
-  // Read category from URL query param on mount
-  useEffect(() => {
-    const categoryFromUrl = searchParams.get("category");
-    if (categoryFromUrl) {
-      setFilters(prev => ({ ...prev, categoryIds: [categoryFromUrl] }));
-      searchParams.delete("category");
-      setSearchParams(searchParams, { replace: true });
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!searchQuery) return;
+    trackSearch(measurementId, searchQuery);
+  }, [searchQuery, measurementId]);
 
   const {
     data: infiniteData,
@@ -86,7 +94,8 @@ const Index = () => {
     filters,
     sortBy,
     limit: PAGE_LIMIT,
-    search: debouncedSearchQuery,
+    search: searchQuery,
+    enabled: !categoriesPending,
   });
 
   // Flatten all pages into a single array
@@ -94,8 +103,6 @@ const Index = () => {
     () => infiniteData?.pages.flatMap((p) => p.data) ?? [],
     [infiniteData]
   );
-
-  const { data: categories } = useCategories();
 
   // Intersection observer for infinite scroll
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -120,6 +127,41 @@ const Index = () => {
     return () => observer.disconnect();
   }, [handleObserver]);
 
+  // Coming back (Back button) to a list the user had scrolled: restore the
+  // position once the cached pages render. Saving starts only after that.
+  const restoreTarget = useRef<number | null>(null);
+  const canSaveScroll = useRef(false);
+  const scrollKey = `discover-scroll:${location.key}`;
+
+  useEffect(() => {
+    const saved = navigationType === "POP" ? sessionStorage.getItem(scrollKey) : null;
+    restoreTarget.current = saved ? Number(saved) : null;
+    canSaveScroll.current = restoreTarget.current === null;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (restoreTarget.current === null || events.length === 0) return;
+    const target = restoreTarget.current;
+    restoreTarget.current = null;
+    requestAnimationFrame(() => {
+      window.scrollTo(0, target);
+      canSaveScroll.current = true;
+    });
+  }, [events.length]);
+
+  useEffect(() => {
+    let frame = 0;
+    const onScroll = () => {
+      if (!canSaveScroll.current || frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        sessionStorage.setItem(scrollKey, String(window.scrollY));
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [scrollKey]);
+
   // Count active filters
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -134,9 +176,6 @@ const Index = () => {
   // Get active filter tags for display
   const activeFilterTags = useMemo(() => {
     const tags: { key: string; label: string }[] = [];
-    if (searchQuery) {
-      tags.push({ key: "search", label: `"${searchQuery}"` });
-    }
     if (filters.categoryIds && filters.categoryIds.length > 0) {
       const categoryNames = filters.categoryIds
         .map(id => categories?.find(c => c.id === id)?.name)
@@ -157,14 +196,13 @@ const Index = () => {
     if (filters.location) {
       tags.push({ key: "location", label: filters.location });
     }
+    if (filters.priceMin || filters.priceMax) {
+      tags.push({ key: "price", label: `$${filters.priceMin || 0} - $${filters.priceMax || 200}+` });
+    }
     return tags;
-  }, [filters, searchQuery, categories]);
+  }, [filters, categories]);
 
   const removeFilter = (key: string) => {
-    if (key === "search") {
-      setSearchQuery("");
-      return;
-    }
     const newFilters = { ...filters };
     if (key === "date") {
       delete newFilters.dateFrom;
@@ -175,6 +213,9 @@ const Index = () => {
       delete newFilters.location;
     } else if (key === "categories") {
       delete newFilters.categoryIds;
+    } else if (key === "price") {
+      delete newFilters.priceMin;
+      delete newFilters.priceMax;
     }
     setFilters(newFilters);
   };
@@ -204,41 +245,23 @@ const Index = () => {
       >
         <div className={`px-4 transition-all duration-200 ${isMobile && scrolled ? 'py-1.5' : 'py-3'}`}>
           <div className="flex items-center gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search events..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => { if (isMobile) setDrawerOpen(true); }}
-                readOnly={isMobile}
-                className={`pl-10 pr-12 transition-all duration-200 ${isMobile && scrolled ? 'h-9' : 'h-11'} ${isMobile ? 'cursor-pointer' : ''}`}
-              />
-              {searchQuery && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-10 top-1/2 -translate-y-1/2 h-7 w-7"
-                  onClick={() => setSearchQuery("")}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-              <div className="absolute right-1.5 top-1/2 -translate-y-1/2">
-                <Suspense fallback={<div className="w-9 h-9" />}>
-                  <FilterDrawer
-                    filters={filters}
-                    onFiltersChange={setFilters}
-                    activeFilterCount={activeFilterCount}
-                    categories={categories || []}
-                    searchQuery={searchQuery}
-                    onSearchQueryChange={setSearchQuery}
-                    open={drawerOpen}
-                    onOpenChange={setDrawerOpen}
-                  />
-                </Suspense>
-              </div>
-            </div>
+            <SearchBar
+              value={searchQuery}
+              onCommit={setSearchQuery}
+              onSelectVenue={(name) => updateUrl({ query: "", filters: { ...filters, location: name } })}
+              compact={isMobile && scrolled}
+            >
+              <Suspense fallback={<div className="w-9 h-9" />}>
+                <FilterDrawer
+                  filters={filters}
+                  onFiltersChange={setFilters}
+                  activeFilterCount={activeFilterCount}
+                  categories={categories || []}
+                  open={drawerOpen}
+                  onOpenChange={setDrawerOpen}
+                />
+              </Suspense>
+            </SearchBar>
             <SortSelect value={sortBy} onChange={setSortBy} />
           </div>
         </div>
@@ -250,18 +273,19 @@ const Index = () => {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="flex gap-2 px-4 pb-3 flex-wrap"
+              className="flex flex-nowrap gap-2 overflow-x-auto scrollbar-hide px-4 pb-3"
             >
               {activeFilterTags.map((tag) => (
                 <Badge
                   key={tag.key}
                   variant="secondary"
-                  className="gap-1 pr-1"
+                  className="shrink-0 gap-1 pr-1"
                 >
                   <span className="truncate max-w-[150px]">{tag.label}</span>
                   <Button
                     variant="ghost"
                     size="icon"
+                    aria-label={`Remove filter: ${tag.label}`}
                     className="h-4 w-4 p-0 hover:bg-transparent"
                     onClick={() => removeFilter(tag.key)}
                   >
@@ -340,10 +364,7 @@ const Index = () => {
                 variant="outline"
                 size="sm"
                 className="mt-4"
-                onClick={() => {
-                  setFilters({});
-                  setSearchQuery("");
-                }}
+                onClick={() => updateUrl({ query: "", filters: {} })}
               >
                 Clear all filters
               </Button>

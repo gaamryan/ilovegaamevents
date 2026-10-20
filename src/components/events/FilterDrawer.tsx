@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { format, startOfDay, endOfDay, endOfWeek, nextSaturday, nextSunday } from "date-fns";
-import { CalendarIcon, Search, SlidersHorizontal, X, MapPin, Loader2 } from "lucide-react";
+import { CalendarIcon, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -27,7 +26,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Calendar as CalendarIcon2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSearchSuggestions, type SearchSuggestion } from "@/hooks/useSearchSuggestions";
 import { useCategoryUpcomingCounts, filterCategoriesWithUpcoming } from "@/hooks/useCategories";
 
 export interface EventFilters {
@@ -52,8 +50,6 @@ interface FilterDrawerProps {
   onFiltersChange: (filters: EventFilters) => void;
   activeFilterCount: number;
   categories: Category[];
-  searchQuery?: string;
-  onSearchQueryChange?: (query: string) => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -63,17 +59,11 @@ export function FilterDrawer({
   onFiltersChange, 
   activeFilterCount,
   categories,
-  searchQuery = "",
-  onSearchQueryChange,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
 }: FilterDrawerProps) {
-  const navigate = useNavigate();
   const [localFilters, setLocalFilters] = useState<EventFilters>(filters);
-  const [localSearch, setLocalSearch] = useState(searchQuery);
   const [internalOpen, setInternalOpen] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const { data: suggestions, isLoading: suggestionsLoading } = useSearchSuggestions(localSearch);
   const { data: upcomingCounts } = useCategoryUpcomingCounts();
   
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
@@ -109,16 +99,13 @@ export function FilterDrawer({
 
   const handleApply = () => {
     onFiltersChange(localFilters);
-    onSearchQueryChange?.(localSearch);
     setOpen(false);
   };
 
   const handleReset = () => {
     const resetFilters: EventFilters = {};
     setLocalFilters(resetFilters);
-    setLocalSearch("");
     onFiltersChange(resetFilters);
-    onSearchQueryChange?.("");
   };
 
   const updateFilter = <K extends keyof EventFilters>(key: K, value: EventFilters[K]) => {
@@ -137,7 +124,6 @@ export function FilterDrawer({
   const handleOpenChange = (isOpen: boolean) => {
     if (isOpen) {
       setLocalFilters(filters);
-      setLocalSearch(searchQuery);
     }
     setOpen(isOpen);
   };
@@ -147,7 +133,8 @@ export function FilterDrawer({
       <DrawerTrigger asChild>
         <button
           type="button"
-          className="flex items-center justify-center h-9 w-9 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors relative"
+          aria-label={activeFilterCount > 0 ? `Filters, ${activeFilterCount} active` : "Filters"}
+          className="flex items-center justify-center h-9 w-9 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
           {activeFilterCount > 0 && (
@@ -161,8 +148,8 @@ export function FilterDrawer({
         <div className="mx-auto w-full max-w-lg">
           <DrawerHeader className="pb-2">
             <DrawerTitle className="flex items-center justify-between">
-              <span>Search & Filters</span>
-              {(activeFilterCount > 0 || localSearch) && (
+              <span>Filters</span>
+              {activeFilterCount > 0 && (
                 <Button variant="ghost" size="sm" onClick={handleReset} className="text-muted-foreground">
                   Clear all
                 </Button>
@@ -172,99 +159,6 @@ export function FilterDrawer({
 
           <ScrollArea className="h-[60vh] px-4">
             <div className="space-y-6 pb-4">
-              {/* Search */}
-              <div className="space-y-3">
-                <Label className="text-base font-semibold">Search</Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search events or venues..."
-                    value={localSearch}
-                    onChange={(e) => {
-                      setLocalSearch(e.target.value);
-                      setShowSuggestions(true);
-                    }}
-                    onFocus={() => setShowSuggestions(true)}
-                    className="pl-10"
-                    autoFocus
-                  />
-                  {localSearch && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7 w-7"
-                      onClick={() => { setLocalSearch(""); setShowSuggestions(false); }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-
-                {/* Autocomplete Suggestions */}
-                {showSuggestions && localSearch.length >= 2 && (
-                  <div className="rounded-lg border border-border bg-popover shadow-md overflow-hidden">
-                    {suggestionsLoading ? (
-                      <div className="flex items-center justify-center py-4">
-                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : suggestions && suggestions.length > 0 ? (
-                      <>
-                        {suggestions.filter(s => s.type === "event").length > 0 && (
-                          <div>
-                            <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/50">Events</div>
-                            {suggestions.filter(s => s.type === "event").map((s) => (
-                              <button
-                                key={s.id}
-                                type="button"
-                                className="w-full text-left px-3 py-2.5 hover:bg-accent transition-colors flex items-start gap-2"
-                                onClick={() => {
-                                  setShowSuggestions(false);
-                                  setOpen(false);
-                                  navigate(`/event/${s.id}`);
-                                }}
-                              >
-                                <Search className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
-                                <div className="min-w-0">
-                                  <div className="text-sm font-medium truncate">{s.label}</div>
-                                  {s.subtitle && <div className="text-xs text-muted-foreground truncate">{s.subtitle}</div>}
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                        {suggestions.filter(s => s.type === "venue").length > 0 && (
-                          <div>
-                            <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/50">Venues</div>
-                            {suggestions.filter(s => s.type === "venue").map((s) => (
-                              <button
-                                key={s.id}
-                                type="button"
-                                className="w-full text-left px-3 py-2.5 hover:bg-accent transition-colors flex items-start gap-2"
-                                onClick={() => {
-                                  setLocalSearch("");
-                                  updateFilter("location", s.label);
-                                  setShowSuggestions(false);
-                                }}
-                              >
-                                <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
-                                <div className="min-w-0">
-                                  <div className="text-sm font-medium truncate">{s.label}</div>
-                                  {s.subtitle && <div className="text-xs text-muted-foreground truncate">{s.subtitle}</div>}
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <div className="px-3 py-4 text-sm text-center text-muted-foreground">
-                        No suggestions found
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
               {/* Quick Filters */}
               <div className="space-y-3">
                 <Label className="text-base font-semibold">Quick Filters</Label>
@@ -456,7 +350,7 @@ export function FilterDrawer({
 
           <DrawerFooter className="pt-2">
             <Button onClick={handleApply} className="w-full">
-              Search Now
+              Show results
             </Button>
             <DrawerClose asChild>
               <Button variant="outline" className="w-full">Cancel</Button>

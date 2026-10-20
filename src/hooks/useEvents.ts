@@ -92,6 +92,7 @@ interface UseApprovedEventsOptions {
   page?: number;     // 0-indexed
   limit?: number;    // items per page
   search?: string;   // matched server-side against title/description
+  enabled?: boolean; // hold the query until inputs (e.g. category slugs) are resolved
 }
 
 export function useApprovedEvents(options: UseApprovedEventsOptions = {}) {
@@ -208,13 +209,14 @@ async function fetchApprovedEvents({
 }
 
 export function useInfiniteApprovedEvents(options: Omit<UseApprovedEventsOptions, 'page'> = {}) {
-  const { categoryId, categoryIds, filters, sortBy = "date_asc", limit = 20, search } = options;
+  const { categoryId, categoryIds, filters, sortBy = "date_asc", limit = 20, search, enabled = true } = options;
 
   return useInfiniteQuery({
     queryKey: ["events", "approved", "infinite", categoryId, categoryIds, filters, sortBy, limit, search],
     queryFn: async ({ pageParam = 0 }) => {
       return fetchApprovedEvents({ categoryId, categoryIds, filters, sortBy, page: pageParam, limit, search });
     },
+    enabled,
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) => {
       const totalLoaded = allPages.reduce((sum, p) => sum + p.data.length, 0);

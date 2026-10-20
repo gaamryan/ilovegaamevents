@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface SearchSuggestion {
   id: string;
+  slug?: string;
   label: string;
   type: "event" | "venue";
   subtitle?: string;
@@ -24,7 +25,7 @@ async function fetchSuggestions(query: string): Promise<SearchSuggestion[]> {
   const [eventsRes, venuesRes] = await Promise.all([
     supabase
       .from("events")
-      .select("id, title, venue:venues(name)")
+      .select("id, slug, title, venue:venues(name)")
       .eq("status", "approved")
       .ilike("title", `%${query}%`)
       .limit(5),
@@ -37,6 +38,7 @@ async function fetchSuggestions(query: string): Promise<SearchSuggestion[]> {
 
   const eventSuggestions: SearchSuggestion[] = (eventsRes.data || []).map((e) => ({
     id: e.id,
+    slug: e.slug,
     label: e.title,
     type: "event" as const,
     subtitle: e.venue?.name,
@@ -52,8 +54,9 @@ async function fetchSuggestions(query: string): Promise<SearchSuggestion[]> {
   return [...eventSuggestions, ...venueSuggestions];
 }
 
-export function useSearchSuggestions(query: string) {
-  const debouncedQuery = useDebounce(query.trim(), 300);
+/** `delay` is 0 when the caller has already debounced `query`. */
+export function useSearchSuggestions(query: string, delay = 300) {
+  const debouncedQuery = useDebounce(query.trim(), delay);
 
   return useQuery({
     queryKey: ["search-suggestions", debouncedQuery],
