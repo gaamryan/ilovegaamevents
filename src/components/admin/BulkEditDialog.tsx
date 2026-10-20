@@ -14,7 +14,9 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Wand2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface BulkEditDialogProps {
     open: boolean;
@@ -31,6 +33,26 @@ export function BulkEditDialog({ open, onOpenChange, selectedEventIds, onSuccess
     const [priceType, setPriceType] = useState<"no-change" | "free" | "paid">("no-change");
     const [priceMin, setPriceMin] = useState<string>("");
     const [priceMax, setPriceMax] = useState<string>("");
+    const [autoRunning, setAutoRunning] = useState(false);
+    const queryClient = useQueryClient();
+
+    const handleAutoCategorize = async () => {
+        setAutoRunning(true);
+        let tagged = 0;
+        let failed = 0;
+        for (const id of selectedEventIds) {
+            const { data, error } = await supabase.rpc("auto_categorize_event", { _event_id: id });
+            if (error) failed++;
+            else if ((data ?? 0) > 0) tagged++;
+        }
+        setAutoRunning(false);
+        if (failed) toast.error(`${failed} event${failed === 1 ? "" : "s"} failed to auto-categorize`);
+        toast.success(`Tagged ${tagged} of ${selectedEventIds.length} event${selectedEventIds.length === 1 ? "" : "s"}`);
+        queryClient.invalidateQueries({ queryKey: ["events"] });
+        queryClient.invalidateQueries({ queryKey: ["category-upcoming-counts"] });
+        queryClient.invalidateQueries({ queryKey: ["admin-category-stats"] });
+        queryClient.invalidateQueries({ queryKey: ["preview-auto-categorization"] });
+    };
 
     const handleSave = async () => {
         const updates: {
@@ -140,6 +162,16 @@ export function BulkEditDialog({ open, onOpenChange, selectedEventIds, onSuccess
                         )}
                     </div>
 
+                </div>
+                <div className="border-t border-border pt-4 space-y-2">
+                    <Label>Auto-categorize</Label>
+                    <p className="text-xs text-muted-foreground">
+                        Tags selected events that have no categories yet, using category keywords.
+                    </p>
+                    <Button variant="secondary" size="sm" onClick={handleAutoCategorize} disabled={autoRunning}>
+                        {autoRunning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                        Auto-categorize selected
+                    </Button>
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)}>

@@ -21,6 +21,7 @@ export function useSingleEvent(slugOrId: string | undefined) {
           venue:venues(id, name, city, address_line_1, address_line_2, state, postal_code, map_url, latitude, longitude),
           host:hosts(id, name, logo_url, website_url),
           event_categories(
+            auto_assigned,
             category:categories(id, name, slug, icon, color)
           )
         `)

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useCategorySuggestions } from "@/hooks/useCategorySuggestions";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -90,6 +91,19 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
   const pricingAtSite = form.watch("pricing_at_site");
   const isRecurring = form.watch("is_recurring");
 
+  // Keyword-based category suggestions; stop overriding once the admin picks manually.
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [categoriesTouched, setCategoriesTouched] = useState(false);
+  const suggestions = useCategorySuggestions(
+    form.watch("title") || "",
+    form.watch("venue_name") || "",
+    form.watch("host_name") || ""
+  );
+  useEffect(() => {
+    if (categoriesTouched) return;
+    setSelectedCategoryIds(suggestions.map((s) => s.category_id));
+  }, [suggestions, categoriesTouched]);
+
   const onSubmit = async (data: EventFormData) => {
     setIsLoading(true);
 
@@ -146,7 +160,7 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
         description: data.description || null,
         start_time: startDateTime.toISOString(),
         end_time: endDateTime?.toISOString() || null,
-        category_id: data.category_id || null,
+        category_id: selectedCategoryIds[0] || null,
         venue_id: venueId,
         host_id: hostId,
         image_url: data.image_url || null,
@@ -166,6 +180,7 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
       }).select("id").single();
 
       if (eventError) throw eventError;
+      const createdIds: string[] = parentEvent ? [parentEvent.id] : [];
 
       // Auto-generate recurring instances
       if (data.is_recurring && data.recurrence_frequency && data.recurrence_until && parentEvent) {
@@ -193,7 +208,7 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
             description: data.description || null,
             start_time: currentStart.toISOString(),
             end_time: instanceEnd?.toISOString() || null,
-            category_id: data.category_id || null,
+            category_id: selectedCategoryIds[0] || null,
             venue_id: venueId,
             image_url: data.image_url || null,
             ticket_url: data.ticket_url || null,
@@ -214,19 +229,30 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
         }
 
         if (instances.length > 0) {
-          const { error: instancesError } = await supabase.from("events").insert(instances);
+          const { data: inserted, error: instancesError } = await supabase.from("events").insert(instances).select("id");
           if (instancesError) throw instancesError;
+          createdIds.push(...(inserted ?? []).map((r) => r.id));
         }
 
         toast.success(`Event created with ${instances.length + 1} occurrences`);
       } else {
         toast.success("Event created successfully");
       }
+
+      // Link categories (admin-confirmed, so auto_assigned stays false)
+      if (selectedCategoryIds.length > 0 && createdIds.length > 0) {
+        const links = createdIds.flatMap((event_id) => selectedCategoryIds.map((category_id) => ({ event_id, category_id })));
+        const { error: catError } = await supabase.from("event_categories").insert(links);
+        if (catError) console.error("Failed to link categories:", catError);
+      }
       queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["category-upcoming-counts"] });
       onOpenChange(false);
       form.reset();
       setSelectedVenueId(null);
       setSelectedHostId(null);
+      setSelectedCategoryIds([]);
+      setCategoriesTouched(false);
     } catch (err) {
       console.error(err);
       toast.error("Failed to create event");
@@ -386,31 +412,39 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
               />
             </div>
 
-            {/* Category */}
-            <FormField
-              control={form.control}
-              name="category_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Category</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent className="bg-background border border-border z-50">
-                      {categories?.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.icon} {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
+            {/* Categories */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Categories</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {categories?.map((cat) => {
+                  const isSelected = selectedCategoryIds.includes(cat.id);
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      aria-pressed={isSelected}
+                      onClick={() => {
+                        setCategoriesTouched(true);
+                        setSelectedCategoryIds((prev) =>
+                          prev.includes(cat.id) ? prev.filter((c) => c !== cat.id) : [...prev, cat.id]
+                        );
+                      }}
+                      className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                        isSelected
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50"
+                      }`}
+                    >
+                      {cat.icon && <span className="mr-1">{cat.icon}</span>}
+                      {cat.name}
+                    </button>
+                  );
+                })}
+              </div>
+              {!categoriesTouched && selectedCategoryIds.length > 0 && (
+                <p className="text-xs text-muted-foreground">Suggested from your title</p>
               )}
-            />
+            </div>
 
             {/* Venue */}
             <div className="space-y-2">
