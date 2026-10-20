@@ -79,6 +79,8 @@ export interface Event {
   // JOIN table structure
   event_categories: {
     category: Category;
+    // Only selected by the admin list and single-event queries.
+    auto_assigned?: boolean;
   }[];
 }
 
@@ -326,6 +328,7 @@ export function useAllEvents(filters?: {
           venue:venues(${VENUE_LIST_COLUMNS}, address_line_1, address_line_2, state, postal_code, map_url),
           host:hosts(${HOST_LIST_COLUMNS}, logo_url, website_url),
           event_categories(
+            auto_assigned,
             category:categories(${CATEGORY_COLUMNS})
           )
         `)
@@ -452,7 +455,7 @@ export function useBulkUpdateEvents() {
               associations.push({ event_id: eventId, category_id: catId });
             }
           }
-          const { error: insertError } = await supabase.from("event_categories").insert(associations);
+          const { error: insertError } = await supabase.from("event_categories").insert(associations); // auto_assigned defaults to false
           if (insertError) throw insertError;
         }
       }
