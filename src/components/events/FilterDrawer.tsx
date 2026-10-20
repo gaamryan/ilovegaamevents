@@ -28,6 +28,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Calendar as CalendarIcon2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSearchSuggestions, type SearchSuggestion } from "@/hooks/useSearchSuggestions";
+import { useCategoryUpcomingCounts, filterCategoriesWithUpcoming } from "@/hooks/useCategories";
 
 export interface EventFilters {
   dateFrom?: Date;
@@ -73,6 +74,7 @@ export function FilterDrawer({
   const [internalOpen, setInternalOpen] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const { data: suggestions, isLoading: suggestionsLoading } = useSearchSuggestions(localSearch);
+  const { data: upcomingCounts } = useCategoryUpcomingCounts();
   
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = (v: boolean) => {
