@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { format } from "date-fns";
-import { parseDiscoverParams, serializeDiscoverState } from "./discoverParams";
+import { legacyCategoryRedirect, parseDiscoverParams, serializeDiscoverState } from "./discoverParams";
 
 const ID_A = "11111111-1111-4111-8111-111111111111";
 const categories = [
@@ -63,5 +63,21 @@ describe("serializeDiscoverState", () => {
       categories,
     );
     expect(out.toString()).toBe("utm_source=ig");
+  });
+});
+
+describe("legacyCategoryRedirect", () => {
+  it("sends old single-category links to the category page, keeping utm params", () => {
+    expect(legacyCategoryRedirect(new URLSearchParams(`category=${ID_A}`), categories)).toBe("/categories/music");
+    expect(legacyCategoryRedirect(new URLSearchParams("category=Table-Top&utm_source=ig"), categories)).toBe(
+      "/categories/table-top?utm_source=ig",
+    );
+  });
+
+  it("leaves filtered or multi-category Discover URLs alone", () => {
+    expect(legacyCategoryRedirect(new URLSearchParams("category=music&free=1"), categories)).toBeNull();
+    expect(legacyCategoryRedirect(new URLSearchParams("category=music,table-top"), categories)).toBeNull();
+    expect(legacyCategoryRedirect(new URLSearchParams("category=nope"), categories)).toBeNull();
+    expect(legacyCategoryRedirect(new URLSearchParams("category=music"), undefined)).toBeNull();
   });
 });

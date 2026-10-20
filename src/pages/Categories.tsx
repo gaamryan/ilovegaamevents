@@ -112,7 +112,7 @@ const Categories = () => {
               <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             </Link>
             {visible.map((category) => (
-              <Link key={category.id} to={`/?category=${category.id}`} className={rowClass}>
+              <Link key={category.id} to={`/categories/${category.slug}`} className={rowClass}>
                 <span
                   className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 text-xl"
                   style={{ backgroundColor: category.color ? `${category.color}26` : undefined }}

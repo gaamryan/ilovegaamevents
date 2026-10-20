@@ -1,9 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
+    renderCategoryPage,
     renderCategoriesPage,
     renderEventPage,
     renderHomePage,
     renderNotFound,
+    type PrerenderCategory,
     type PrerenderEvent,
     type PrerenderListEvent,
 } from "./render.ts";
@@ -29,22 +31,52 @@ Deno.serve(async (req) => {
 
     // The service role bypasses RLS, so every query below is limited to approved events.
     if (path === "/") {
-        const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
         const { data, error } = await supabase
             .from("events")
             .select("slug, title, description, start_time, is_livestream, venue:venues(name, city)")
             .eq("status", "approved")
-            .gte("start_time", cutoff)
+            .gte("start_time", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
             .order("start_time", { ascending: true })
             .limit(100);
         if (error) return new Response("error", { status: 500 });
         return respond(200, renderHomePage((data ?? []) as unknown as PrerenderListEvent[]));
     }
 
+    const upcomingCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
     if (path === "/categories") {
-        const { data, error } = await supabase.from("categories").select("name").order("name");
-        if (error) return new Response("error", { status: 500 });
-        return respond(200, renderCategoriesPage(data ?? []));
+        // Same rule as the site: only categories with upcoming events are listed.
+        const [cats, counts] = await Promise.all([
+            supabase.from("categories").select("id, slug, name, description").order("sort_order"),
+            supabase.from("category_upcoming_counts").select("category_id, upcoming_count"),
+        ]);
+        if (cats.error || counts.error) return new Response("error", { status: 500 });
+        const withEvents = new Set((counts.data ?? []).filter((c) => (c.upcoming_count ?? 0) > 0).map((c) => c.category_id));
+        return respond(200, renderCategoriesPage((cats.data ?? []).filter((c) => withEvents.has(c.id))));
+    }
+
+    const categoryMatch = path.match(/^\/categories\/([^/]+)$/);
+    if (categoryMatch) {
+        const categorySlug = categoryMatch[1].toLowerCase();
+        if (!SLUG_RE.test(categorySlug)) return respond(404, renderNotFound());
+        const { data: category, error: catError } = await supabase
+            .from("categories")
+            .select("id, slug, name, icon, description")
+            .eq("slug", categorySlug)
+            .maybeSingle();
+        if (catError) return new Response("error", { status: 500 });
+        if (!category) return respond(404, renderNotFound());
+
+        const { data: categoryEvents, error: eventsError } = await supabase
+            .from("events")
+            .select("slug, title, description, start_time, is_livestream, venue:venues(name, city), event_categories!inner(category_id)")
+            .eq("status", "approved")
+            .eq("event_categories.category_id", category.id)
+            .gte("start_time", upcomingCutoff)
+            .order("start_time", { ascending: true })
+            .limit(100);
+        if (eventsError) return new Response("error", { status: 500 });
+        return respond(200, renderCategoryPage(category as PrerenderCategory, (categoryEvents ?? []) as unknown as PrerenderListEvent[]));
     }
 
     const match = path.match(/^\/events\/([^/]+)$/);

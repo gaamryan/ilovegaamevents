@@ -9,7 +9,7 @@ const BOT_UA =
     /GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-User|Claude-SearchBot|anthropic-ai|PerplexityBot|Perplexity-User|Google-Extended|Applebot|DuckDuckBot|CCBot|Bytespider|Amazonbot|meta-externalagent|cohere-ai|YouBot|Diffbot|facebookexternalhit|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|TelegramBot/i;
 
 const isPublicPage = (pathname) =>
-    pathname === "/" || pathname === "/categories" || /^\/events\/[^/]+$/.test(pathname);
+    pathname === "/" || pathname === "/categories" || /^\/(events|categories)\/[^/]+$/.test(pathname);
 
 export default {
     async fetch(request) {

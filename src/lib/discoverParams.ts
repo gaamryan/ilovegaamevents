@@ -105,3 +105,23 @@ export function serializeDiscoverState(
   if (state.sortBy !== DEFAULT_SORT) next.set("sort", state.sortBy);
   return next;
 }
+
+/**
+ * `/?category=<id-or-slug>` (and nothing else Discover-related) is the old
+ * category link; returns the `/categories/<slug>` URL to send it to, or null.
+ */
+export function legacyCategoryRedirect(params: URLSearchParams, categories: CategoryRef[] | undefined): string | null {
+  if (!categories) return null;
+  const managed = DISCOVER_KEYS.filter((key) => params.has(key));
+  if (managed.length !== 1 || managed[0] !== "category") return null;
+  const token = (params.get("category") ?? "").trim();
+  if (!token || token.includes(",")) return null;
+  const category = isUuid(token)
+    ? categories.find((c) => c.id === token)
+    : categories.find((c) => c.slug.toLowerCase() === token.toLowerCase());
+  if (!category) return null;
+  const rest = new URLSearchParams(params);
+  rest.delete("category");
+  const query = rest.toString();
+  return `/categories/${category.slug}${query ? `?${query}` : ""}`;
+}

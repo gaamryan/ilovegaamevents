@@ -207,8 +207,8 @@ ${link ? `<p><a href="${escapeHtml(link)}">${event.is_livestream ? "Watch" : "Ev
     });
 }
 
-export function renderHomePage(events: PrerenderListEvent[]): string {
-    const items = events
+function renderEventList(events: PrerenderListEvent[]): string {
+    return events
         .map((e) => {
             const where = e.is_livestream ? "Online livestream" : [e.venue?.name, e.venue?.city].filter(Boolean).join(", ");
             const blurb = stripHtml(e.description).slice(0, 200);
@@ -219,12 +219,14 @@ ${blurb ? `<p>${escapeHtml(blurb)}</p>` : ""}
 </li>`;
         })
         .join("\n");
+}
 
+export function renderHomePage(events: PrerenderListEvent[]): string {
     const body = `<h1>${SITE_NAME}</h1>
 <p>${SITE_DESCRIPTION}</p>
 <h2>Upcoming events</h2>
 <ul>
-${items}
+${renderEventList(events)}
 </ul>`;
 
     return layout({
@@ -235,10 +237,35 @@ ${items}
     });
 }
 
-export function renderCategoriesPage(categories: { name: string }[]): string {
+export interface PrerenderCategory {
+    slug: string;
+    name: string;
+    icon: string | null;
+    description: string | null;
+}
+
+export function renderCategoryPage(category: PrerenderCategory, events: PrerenderListEvent[]): string {
+    const description = `${category.description ? `${category.description} ` : ""}Upcoming ${category.name} events in Jacksonville and Northeast Florida.`.slice(0, 160);
+    const body = `<h1>${escapeHtml(`${category.icon ?? ""} ${category.name}`.trim())}</h1>
+${category.description ? `<p>${escapeHtml(category.description)}</p>` : ""}
+${events.length > 0 ? `<ul>\n${renderEventList(events)}\n</ul>` : `<p>No upcoming ${escapeHtml(category.name)} events yet.</p>`}
+<nav><a href="${SITE_URL}/categories">All categories</a> · <a href="${SITE_URL}/">All upcoming events</a></nav>`;
+
+    return layout({
+        title: `${category.name} Events in Jacksonville | ${SITE_NAME}`,
+        description,
+        canonical: `${SITE_URL}/categories/${category.slug}`,
+        noindex: events.length === 0,
+        body,
+    });
+}
+
+export function renderCategoriesPage(categories: { slug: string; name: string; description: string | null }[]): string {
     const body = `<h1>Event categories</h1>
 <ul>
-${categories.map((c) => `<li>${escapeHtml(c.name)}</li>`).join("\n")}
+${categories
+        .map((c) => `<li><a href="${SITE_URL}/categories/${escapeHtml(c.slug)}">${escapeHtml(c.name)}</a>${c.description ? ` — ${escapeHtml(c.description)}` : ""}</li>`)
+        .join("\n")}
 </ul>
 <nav><a href="${SITE_URL}/">All upcoming events</a></nav>`;
 
@@ -252,10 +279,10 @@ ${categories.map((c) => `<li>${escapeHtml(c.name)}</li>`).join("\n")}
 
 export function renderNotFound(): string {
     return layout({
-        title: `Event not found | ${SITE_NAME}`,
-        description: "This event may have been removed or doesn't exist.",
+        title: `Page not found | ${SITE_NAME}`,
+        description: "This page may have been removed or doesn't exist.",
         canonical: `${SITE_URL}/`,
         noindex: true,
-        body: `<h1>Event not found</h1><p><a href="${SITE_URL}/">Browse upcoming events</a></p>`,
+        body: `<h1>Page not found</h1><p><a href="${SITE_URL}/">Browse upcoming events</a></p>`,
     });
 }

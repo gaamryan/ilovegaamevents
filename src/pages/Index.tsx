@@ -1,24 +1,23 @@
 import { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from "react";
-import { useLocation, useNavigationType, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useNavigationType, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Loader2 } from "lucide-react";
+import { X } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/ui/header";
-import { EventCard } from "@/components/events/EventCard";
-import { EventListSkeleton } from "@/components/events/EventCardSkeleton";
+import { EventGrid } from "@/components/events/EventGrid";
 import { FeaturedEvents } from "@/components/events/FeaturedEvents";
 import { HappeningNow } from "@/components/events/HappeningNow";
 import type { EventFilters } from "@/components/events/FilterDrawer";
 import { SortSelect, type SortOption } from "@/components/events/SortSelect";
 import { SearchBar } from "@/components/events/SearchBar";
-import { parseDiscoverParams, serializeDiscoverState, type DiscoverState } from "@/lib/discoverParams";
+import { legacyCategoryRedirect, parseDiscoverParams, serializeDiscoverState, type DiscoverState } from "@/lib/discoverParams";
 
 // Lazy-load heavy components — defers react-day-picker (106KB) until drawer opens
 const FilterDrawer = lazy(() => import("@/components/events/FilterDrawer").then(m => ({ default: m.FilterDrawer })));
 
 import { useInfiniteApprovedEvents } from "@/hooks/useEvents";
 import { useCategories } from "@/hooks/useCategories";
-import { useSettings, DEFAULT_FEED_DISPLAY } from "@/hooks/useSettings";
+import { useSettings } from "@/hooks/useSettings";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,9 +31,6 @@ const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: settings } = useSettings();
   const PAGE_LIMIT = settings?.pagination_limit?.value || 20;
-  const feedDisplay = settings?.feed_display ?? DEFAULT_FEED_DISPLAY;
-  const mobileColsClass = { 1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3" }[feedDisplay.mobileColumns];
-  const desktopColsClass = { 1: "md:grid-cols-1", 2: "md:grid-cols-2", 3: "md:grid-cols-3" }[feedDisplay.desktopColumns];
 
   useEffect(() => {
     if (!isMobile) return;
@@ -60,6 +56,19 @@ const Index = () => {
   latestParams.current = searchParams;
   const categoriesRef = useRef(categories);
   categoriesRef.current = categories;
+
+  // Old /?category=<id-or-slug> links now live at /categories/<slug>. Only the
+  // URL the page was opened with is redirected, so picking a category in the
+  // filters afterwards never bounces the visitor away.
+  const navigate = useNavigate();
+  const openedWith = useRef(searchParams);
+  const redirectChecked = useRef(false);
+  useEffect(() => {
+    if (redirectChecked.current || !categories) return;
+    redirectChecked.current = true;
+    const target = legacyCategoryRedirect(openedWith.current, categories);
+    if (target) navigate(target, { replace: true });
+  }, [categories, navigate]);
 
   // Reads the newest params (not the render's) so two updates in one tick compose.
   const updateUrl = useCallback(
@@ -103,29 +112,6 @@ const Index = () => {
     () => infiniteData?.pages.flatMap((p) => p.data) ?? [],
     [infiniteData]
   );
-
-  // Intersection observer for infinite scroll
-  const loadMoreRef = useRef<HTMLDivElement>(null);
-
-  const handleObserver = useCallback(
-    (entries: IntersectionObserverEntry[]) => {
-      const [entry] = entries;
-      if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) {
-        fetchNextPage();
-      }
-    },
-    [hasNextPage, isFetchingNextPage, fetchNextPage]
-  );
-
-  useEffect(() => {
-    const el = loadMoreRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(handleObserver, {
-      rootMargin: "200px",
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [handleObserver]);
 
   // Coming back (Back button) to a list the user had scrolled: restore the
   // position once the cached pages render. Saving starts only after that.
@@ -305,73 +291,39 @@ const Index = () => {
       <FeaturedEvents />
 
       {/* Event List */}
-      <div className={`p-4 grid gap-4 ${mobileColsClass} ${desktopColsClass} min-h-[600px]`}>
-        {eventsLoading ? (
-          <EventListSkeleton count={4} />
-        ) : events && events.length > 0 ? (
-          <>
-            {events.map((event, index) => (
-              <motion.div
-                key={event.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(index * 0.05, 0.5) }}
-              >
-                <EventCard
-                  id={event.id}
-                  slug={event.slug}
-                  title={event.title}
-                  description={event.description || undefined}
-                  imageUrl={event.image_url || undefined}
-                  startTime={new Date(event.start_time)}
-                  venueName={event.venue?.name}
-                  categories={event.event_categories?.map(ec => ec.category)}
-                  isFree={event.is_free || false}
-                  pricingAtSite={event.pricing_at_site || false}
-                  isLivestream={event.is_livestream || false}
-                  priceMin={event.price_min || undefined}
-                  priceMax={event.price_max || undefined}
-                  isRecurring={event.is_recurring || false}
-                />
-              </motion.div>
-            ))}
-
-            {/* Infinite scroll sentinel */}
-            <div ref={loadMoreRef} className="col-span-full flex justify-center py-6">
-              {isFetchingNextPage && (
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <EventGrid
+        events={events}
+        isLoading={eventsLoading || categoriesPending}
+        hasNextPage={hasNextPage}
+        isFetchingNextPage={isFetchingNextPage}
+        fetchNextPage={fetchNextPage}
+        pageLimit={PAGE_LIMIT}
+        empty={
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-16"
+            >
+              <div className="text-6xl mb-4">🎉</div>
+              <h3 className="text-lg font-semibold mb-2">No events found</h3>
+              <p className="text-muted-foreground text-sm">
+                {activeFilterCount > 0 || searchQuery
+                  ? "Try adjusting your filters to see more events."
+                  : "Events will appear here once approved."}
+              </p>
+              {(activeFilterCount > 0 || searchQuery) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4"
+                  onClick={() => updateUrl({ query: "", filters: {} })}
+                >
+                  Clear all filters
+                </Button>
               )}
-              {!hasNextPage && events.length > PAGE_LIMIT && (
-                <p className="text-sm text-muted-foreground">You've seen all events</p>
-              )}
-            </div>
-          </>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-16"
-          >
-            <div className="text-6xl mb-4">🎉</div>
-            <h3 className="text-lg font-semibold mb-2">No events found</h3>
-            <p className="text-muted-foreground text-sm">
-              {activeFilterCount > 0 || searchQuery
-                ? "Try adjusting your filters to see more events."
-                : "Events will appear here once approved."}
-            </p>
-            {(activeFilterCount > 0 || searchQuery) && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-4"
-                onClick={() => updateUrl({ query: "", filters: {} })}
-              >
-                Clear all filters
-              </Button>
-            )}
-          </motion.div>
-        )}
-      </div>
+            </motion.div>
+        }
+      />
     </AppLayout>
   );
 };
