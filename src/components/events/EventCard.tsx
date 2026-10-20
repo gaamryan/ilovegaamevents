@@ -1,7 +1,9 @@
 import { motion } from "framer-motion";
-import { Calendar, MapPin, Repeat, Share2 } from "lucide-react";
+import { Calendar, MapPin, Repeat, Share2, Ticket } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { prefetchEvent } from "@/hooks/useSingleEvent";
 import { shareEvent } from "@/lib/share";
 import { LazyImage } from "@/components/ui/LazyImage";
 
@@ -46,6 +48,7 @@ export function EventCard({
   onClick,
 }: EventCardProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const formattedDate = format(new Date(startTime), "EEE, MMM d");
   const formattedTime = format(new Date(startTime), "h:mm a");
 
@@ -63,6 +66,12 @@ export function EventCard({
   const price = getPriceDisplay();
   const linkTarget = slug || id;
 
+  // Warm the detail page (code + data) when the card is hovered or touched.
+  const warmDetail = () => {
+    void import("@/pages/EventDetail");
+    void prefetchEvent(queryClient, linkTarget);
+  };
+
   const handleClick = () => {
     if (onClick) {
       onClick(id);
@@ -77,6 +86,8 @@ export function EventCard({
       animate={{ opacity: 1, y: 0 }}
       className="event-card cursor-pointer touch-feedback"
       onClick={handleClick}
+      onPointerEnter={warmDetail}
+      onTouchStart={warmDetail}
     >
       {/* Image */}
       <div className="relative aspect-[16/10] overflow-hidden">
@@ -162,6 +173,14 @@ export function EventCard({
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <MapPin className="h-4 w-4 flex-shrink-0" />
             <span className="truncate">{venueName}</span>
+          </div>
+        )}
+
+        {/* Price — the image overlay badge is desktop-only, so phones get it here */}
+        {price && (
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground md:hidden">
+            <Ticket className="h-4 w-4 flex-shrink-0 text-muted-foreground" aria-hidden="true" />
+            <span>{price}</span>
           </div>
         )}
       </div>

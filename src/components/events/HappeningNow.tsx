@@ -10,6 +10,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { LazyImage } from "@/components/ui/LazyImage";
 
+// Remembering whether the last visit had live events lets us reserve the
+// section's space while loading, so it doesn't shove the feed down on arrival.
+const HAD_EVENTS_KEY = "happening-now-had-events";
+
+function readHadEvents(): boolean {
+  try {
+    return sessionStorage.getItem(HAD_EVENTS_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 function useHappeningNowEvents() {
   return useQuery({
     queryKey: ["events", "happening-now"],
@@ -60,7 +72,14 @@ export function HappeningNow() {
     scrollRef.current?.scrollBy({ left: dir === "left" ? -280 : 280, behavior: "smooth" });
   };
 
-  if (isLoading) return null; // Don't show skeleton for this optional section
+  if (isLoading) {
+    return readHadEvents() ? <div className="min-h-[280px]" aria-hidden="true" /> : null;
+  }
+  try {
+    sessionStorage.setItem(HAD_EVENTS_KEY, events && events.length > 0 ? "1" : "0");
+  } catch {
+    /* storage unavailable */
+  }
   if (!events || events.length === 0) return null;
 
   return (
@@ -83,10 +102,10 @@ export function HappeningNow() {
             </span>
           </div>
           <div className="hidden sm:flex gap-1">
-            <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => scroll("left")}>
+            <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" aria-label="Scroll left" onClick={() => scroll("left")}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => scroll("right")}>
+            <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" aria-label="Scroll right" onClick={() => scroll("right")}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>

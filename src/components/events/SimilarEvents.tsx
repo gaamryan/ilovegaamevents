@@ -98,10 +98,10 @@ export function SimilarEvents({ eventId, categoryIds, venueId }: SimilarEventsPr
       <div className="flex items-center justify-between px-4 mb-4">
         <h2 className="text-lg font-bold">Similar Events</h2>
         <div className="hidden sm:flex gap-1">
-          <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => scroll("left")}>
+          <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" aria-label="Scroll left" onClick={() => scroll("left")}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => scroll("right")}>
+          <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" aria-label="Scroll right" onClick={() => scroll("right")}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>

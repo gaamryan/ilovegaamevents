@@ -130,16 +130,36 @@ async function fetchApprovedEvents({
     ? `${EVENT_LIST_COLUMNS}, venue:venues(${VENUE_LIST_COLUMNS}), host:hosts(${HOST_LIST_COLUMNS}), event_categories!inner(category:categories(${CATEGORY_COLUMNS}))`
     : `${EVENT_LIST_COLUMNS}, venue:venues(${VENUE_LIST_COLUMNS}), host:hosts(${HOST_LIST_COLUMNS}), event_categories(category:categories(${CATEGORY_COLUMNS}))`;
 
+  // Location matches venue name or city. Resolved up front so pagination
+  // stays full (filtering after the fetch left short or empty pages).
+  const locationTerm = filters?.location?.trim();
+  let venueIds: string[] | null = null;
+  if (locationTerm) {
+    const term = escapeForPostgrestOr(locationTerm);
+    const { data: venues, error: venueError } = await supabase
+      .from("venues")
+      .select("id")
+      .or(`name.ilike.%${term}%,city.ilike.%${term}%`)
+      .limit(200);
+    if (venueError) throw venueError;
+    venueIds = (venues ?? []).map((v) => v.id);
+    if (venueIds.length === 0) return { data: [] as Event[], hasMore: false };
+  }
+
   let query = supabase
     .from("events")
-    .select(selectQuery, { count: 'exact' })
+    .select(selectQuery)
     .eq("status", "approved");
 
-  // Apply Pagination
+  // Fetch one row past the page: if it exists there is a next page. This
+  // replaces an exact count, which made the database count every match on
+  // every page request.
   const from = page * limit;
-  const to = from + limit - 1;
-  query = query.range(from, to);
+  query = query.range(from, from + limit);
 
+  if (venueIds) {
+    query = query.in("venue_id", venueIds);
+  }
   if (categoryId) {
     query = query.eq("event_categories.category_id", categoryId);
   }
@@ -147,11 +167,11 @@ async function fetchApprovedEvents({
     query = query.in("event_categories.category_id", categoryIds);
   }
 
-  if (filters?.dateFrom) {
-    query = query.gte("start_time", filters.dateFrom.toISOString());
-  } else {
-    query = query.gte("start_time", startOfDay(new Date()).toISOString());
-  }
+  // Include events that already started but are still running (multi-day
+  // markets, festivals): upcoming start, or an end time still in the future.
+  const windowStart = (filters?.dateFrom ?? startOfDay(new Date())).toISOString();
+  const stillRunningFrom = (filters?.dateFrom ?? new Date()).toISOString();
+  const andConditions = [`or(start_time.gte.${windowStart},end_time.gte.${stillRunningFrom})`];
   if (filters?.dateTo) {
     const endOfDay = new Date(filters.dateTo);
     endOfDay.setHours(23, 59, 59, 999);
@@ -173,8 +193,11 @@ async function fetchApprovedEvents({
   const trimmedSearch = search?.trim();
   if (trimmedSearch && trimmedSearch.length >= 2) {
     const term = escapeForPostgrestOr(trimmedSearch);
-    query = query.or(`title.ilike.%${term}%,description.ilike.%${term}%`);
+    andConditions.push(`or(title.ilike.%${term}%,description.ilike.%${term}%)`);
   }
+  // A single `or=(and(...))`: supabase-js has no top-level `and`, and this keeps
+  // the date window and search from being read as two competing `or` filters.
+  query = query.or(`and(${andConditions.join(",")})`);
 
   switch (sortBy) {
     case "date_asc":
@@ -191,21 +214,11 @@ async function fetchApprovedEvents({
       break;
   }
 
-  const { data, error, count } = await query;
+  const { data, error } = await query;
   if (error) throw error;
 
-  let filteredData = data as Event[];
-
-  if (filters?.location) {
-    const locationLower = filters.location.toLowerCase();
-    filteredData = filteredData.filter(
-      (event) =>
-        event.venue?.name?.toLowerCase().includes(locationLower) ||
-        event.venue?.city?.toLowerCase().includes(locationLower)
-    );
-  }
-
-  return { data: filteredData as Event[], count };
+  const rows = (data ?? []) as unknown as Event[];
+  return { data: rows.slice(0, limit), hasMore: rows.length > limit };
 }
 
 export function useInfiniteApprovedEvents(options: Omit<UseApprovedEventsOptions, 'page'> = {}) {
@@ -218,13 +231,7 @@ export function useInfiniteApprovedEvents(options: Omit<UseApprovedEventsOptions
     },
     enabled,
     initialPageParam: 0,
-    getNextPageParam: (lastPage, allPages) => {
-      const totalLoaded = allPages.reduce((sum, p) => sum + p.data.length, 0);
-      if (lastPage.count && totalLoaded < lastPage.count) {
-        return allPages.length;
-      }
-      return undefined;
-    },
+    getNextPageParam: (lastPage, allPages) => (lastPage.hasMore ? allPages.length : undefined),
   });
 }
 

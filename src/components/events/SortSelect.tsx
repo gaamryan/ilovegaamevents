@@ -24,7 +24,7 @@ const sortOptions: { value: SortOption; label: string }[] = [
 export function SortSelect({ value, onChange }: SortSelectProps) {
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="w-[160px] h-11 bg-background text-foreground border-input">
+      <SelectTrigger className="w-[120px] sm:w-[160px] h-11 bg-background text-foreground border-input">
         <ArrowUpDown className="h-4 w-4 mr-2 text-muted-foreground" />
         <SelectValue placeholder="Sort by" />
       </SelectTrigger>

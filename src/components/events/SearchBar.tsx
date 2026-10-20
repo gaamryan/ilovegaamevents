@@ -174,7 +174,7 @@ export function SearchBar({ value, onCommit, onSelectVenue, compact, children }:
         autoComplete="off"
         autoCorrect="off"
         spellCheck={false}
-        placeholder="Search events or venues..."
+        placeholder="Search events"
         aria-label="Search events or venues"
         role="combobox"
         aria-expanded={showList}
@@ -187,7 +187,8 @@ export function SearchBar({ value, onCommit, onSelectVenue, compact, children }:
         onBlur={close}
         onKeyDown={handleKeyDown}
         className={cn(
-          "pl-10 pr-20 transition-all duration-200 [&::-webkit-search-cancel-button]:appearance-none",
+          "pl-10 transition-all duration-200 [&::-webkit-search-cancel-button]:appearance-none",
+          draft ? "pr-20" : "pr-12",
           compact ? "h-9" : "h-11",
         )}
       />

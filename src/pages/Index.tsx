@@ -10,6 +10,8 @@ import { HappeningNow } from "@/components/events/HappeningNow";
 import type { EventFilters } from "@/components/events/FilterDrawer";
 import { SortSelect, type SortOption } from "@/components/events/SortSelect";
 import { SearchBar } from "@/components/events/SearchBar";
+import { QuickFilters } from "@/components/events/QuickFilters";
+import { CategoryFilter } from "@/components/events/CategoryFilter";
 import { legacyCategoryRedirect, parseDiscoverParams, serializeDiscoverState, type DiscoverState } from "@/lib/discoverParams";
 
 // Lazy-load heavy components — defers react-day-picker (106KB) until drawer opens
@@ -98,6 +100,8 @@ const Index = () => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    isError,
+    refetch,
   } = useInfiniteApprovedEvents({
     categoryIds: filters.categoryIds,
     filters,
@@ -213,16 +217,18 @@ const Index = () => {
         <meta name="description" content={SITE_DESCRIPTION} />
         <link rel="canonical" href={`${SITE_URL}/`} />
       </Helmet>
+      {/* One sticky unit (header + search) so nothing depends on hard-coded offsets */}
+      <div className="sticky top-0 z-40">
       <PageHeader
+        sticky={false}
         title="ILoveGAAM"
         subtitle="Events for Gamers, Artists, Music Lovers, Creators & Nerds in Jacksonville and the Southeast"
       />
 
       {/* Search & Filter Bar */}
       <div
-        className="sticky z-30 border-b border-border transition-all duration-200"
+        className="border-b border-border transition-all duration-200"
         style={{
-          top: isMobile && scrolled ? '43px' : '73px',
           background: 'var(--topbar-bg)',
           color: `hsl(var(--topbar-text))`,
           backdropFilter: 'blur(var(--topbar-blur))',
@@ -283,6 +289,15 @@ const Index = () => {
           )}
         </AnimatePresence>
       </div>
+      </div>
+
+      <QuickFilters filters={filters} onChange={setFilters} />
+      <CategoryFilter
+        categories={categories || []}
+        isLoading={!categories}
+        selectedCategory={filters.categoryIds?.length === 1 ? filters.categoryIds[0] : null}
+        onSelectCategory={(id) => setFilters({ ...filters, categoryIds: id ? [id] : undefined })}
+      />
 
       {/* Happening Now */}
       <HappeningNow />
@@ -298,6 +313,9 @@ const Index = () => {
         isFetchingNextPage={isFetchingNextPage}
         fetchNextPage={fetchNextPage}
         pageLimit={PAGE_LIMIT}
+        groupByDate={sortBy === "date_asc"}
+        isError={isError}
+        onRetry={() => refetch()}
         empty={
             <motion.div
               initial={{ opacity: 0 }}
