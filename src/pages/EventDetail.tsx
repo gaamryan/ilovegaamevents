@@ -15,6 +15,7 @@ import {
   Globe,
   Edit,
   Repeat,
+  Play,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -158,7 +159,7 @@ const EventDetail = () => {
         </div>
       </div>
 
-      <div className="pt-[60px] pb-24">
+      <div className="pt-[60px] pb-44">
         {isLoading ? (
           <EventDetailSkeleton />
         ) : event ? (
@@ -366,28 +367,32 @@ const EventDetail = () => {
         const sourceLink = ensureUrl(event.source_url);
         const ctaUrl = ticketLink || sourceLink;
         const ctaLabel = event.is_livestream
-          ? "Go Watch"
+          ? "View Stream"
           : ticketLink
             ? "Get Tickets"
             : "Visit Original Listing";
-        const CtaIcon = ticketLink ? Ticket : ExternalLink;
+        const CtaIcon = event.is_livestream ? Play : ticketLink ? Ticket : ExternalLink;
 
         return (
           <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-md border-t border-border z-40">
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-2">
               {ctaUrl ? (
-                <Button className="flex-1 h-12 text-base gap-2" asChild>
+                <Button className="w-full h-12 text-base gap-2" asChild>
                   <a href={ctaUrl} target="_blank" rel="noopener noreferrer">
                     <CtaIcon className="h-5 w-5" />
                     {ctaLabel}
                   </a>
                 </Button>
               ) : (
-                <Button className="flex-1 h-12 text-base gap-2" disabled>
+                <Button className="w-full h-12 text-base gap-2" disabled>
                   <Ticket className="h-5 w-5" />
                   No link available
                 </Button>
               )}
+              <Button variant="outline" className="w-full h-12 text-base gap-2" onClick={handleShare}>
+                <Share2 className="h-5 w-5" />
+                Share
+              </Button>
             </div>
           </div>
         );
